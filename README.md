@@ -1,4 +1,4 @@
-CS3103 Concurrent Web Crawler Assignment
+CS3103 Concurrent Web Crawler Project
 ==================
 
 ## Execution
@@ -14,3 +14,8 @@ Links will be written to `results.txt`.
 Described in `Master.java` class doc.
 
 
+=======
+CS3103-Project
+==============
+
+Graph Database
