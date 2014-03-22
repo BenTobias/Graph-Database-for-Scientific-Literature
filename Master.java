@@ -51,14 +51,21 @@ public class Master {
 	private static final String RESULTS_FILENAME = "results.txt";
 	private static final String WHITESPACE = "                               ";
 	private int m_maxPagesToCrawl;
-	private HashSet<String> m_seenHostNames = new HashSet<String>();
-	private ArrayList<URI> m_urisRepository = new ArrayList<URI>();
+	private HashSet<String> m_seenUrls = new HashSet<String>();
+	private ArrayList<URI> m_urisRepository = new ArrayList<>();
 	private String[] m_seedUrls = null;
 	private ThreadPoolExecutor m_executorPool;
 	private int m_linkCounts = 0;
 	private int m_maxCrawlers = 1;
 	private ArrayList<String> m_results = new ArrayList<String>();
+    private ArrayList<String> m_jsonRepository = new ArrayList<>();
 
+    /**
+     * Locks.
+     */
+    private static final Object m_jsonRepositoryLock = new Object();
+    private static final Object m_uriRepositoryLock = new Object();
+    private static final Object m_linkCountslock = new Object();
 	
 	/**
 	 * Constructor for Master.
@@ -117,7 +124,7 @@ public class Master {
 	 * @param url The URL string to add into the repository.
 	 */
 	private void addUrlToRepository(String url) {
-		URI uri = null;
+		URI uri;
 		try {
 			uri = new URI(url);
 		} catch (URISyntaxException e) {
@@ -125,42 +132,12 @@ public class Master {
 			return;
 		}
 
-		String host = uri.getHost();
-		String pageType = getPageType(uri.getRawPath());
-
-		if (!m_seenHostNames.contains(host) && isHTMLPageType(pageType)) {
-			m_seenHostNames.add(host);
-			m_urisRepository.add(uri);
-		}
-	}
-
-	/**
-	 * Checks if the given extension is of type HTML or has no extension. 
-	 * @param pageType The extension to check (eg. ".html", ".pdf", etc).
-	 * @return true if the extension is a HTML type or has no extension.
-	 * 		Returns false otherwise.
-	 */
-	private boolean isHTMLPageType(String pageType) {
-		return pageType == "html" || pageType == "htm" || pageType == "" || pageType == "aspx";
-	}
-
-	/**
-	 * Gets the URL's page type. This is the extension of the page
-	 * (eg. ".html", ".pdf", ".jpg", etc). If no extension is present, an empty
-	 * string is returned.
-	 * @param rawPath The URL string.
-	 * @return the extension of the URL or an empty string.
-	 */
-	private String getPageType(String rawPath) {
-		if (rawPath == null) {
-			return "";
-		}
-
-		int dotIndex = rawPath.lastIndexOf('.');
-		if (dotIndex != -1) {
-			return rawPath.substring(dotIndex + 1);
-		}
-		return "";
+        synchronized (m_uriRepositoryLock) {
+            if (!m_seenUrls.contains(uri.toString())) {
+                m_seenUrls.add(uri.toString());
+                m_urisRepository.add(uri);
+            }
+        }
 	}
 	
 	/**
@@ -171,8 +148,8 @@ public class Master {
 	 * @throws IOException
 	 * @throws URISyntaxException
 	 */
-	public String[] startCrawl() throws UnknownHostException, IOException,
-			URISyntaxException {	
+	public String[] startCrawl() throws IOException,
+			URISyntaxException {
 		executeCrawl();
 		System.out.println("Found " + m_linkCounts + " links.");
 		
@@ -209,15 +186,16 @@ public class Master {
 			try {
 				Thread.sleep(REQUEST_DELAY);
 			} catch (InterruptedException e) {
-				System.err.println("Crawling delay interupted.");
+				System.err.println("Crawling delay interrupted.");
 			}
-			
-			URI uri = m_urisRepository.get(0);
-			m_urisRepository.remove(0);
-			
-			if (uri != null) {
-				m_executorPool.execute(new Crawler(uri, this));
-			}
+
+            synchronized (m_uriRepositoryLock) {
+                URI uri = m_urisRepository.get(0);
+                m_urisRepository.remove(0);
+                if (uri != null) {
+                    m_executorPool.execute(new Crawler(uri, this));
+                }
+            }
 		}
 	}
 	
@@ -263,36 +241,70 @@ public class Master {
 	 * with the links obtained from its crawl job. Only one crawler thread can
 	 * access this at any point in time to prevent an error from a race
 	 * condition.
-	 * @param links the URL strings to add into the repository.
-	 * @param crawledHost the host that was visited.
-	 * @param RTT the request time taken to crawl the page.
-	 */
-	public synchronized void addCrawledLinksCallback(String[] links, 
-			String crawledHost, long RTT) {
+     * @param links the URL strings to add into the repository.
+     * @param paperJson the paper node JSON string.
+     * @param crawledURL the url that was visited.
+     * @param crawled checks if the url was crawled successfully.
+     */
+	public void addCrawledDataCallback(String[] links,
+                                                    String paperJson,
+                                                    String crawledURL,
+                                                    boolean crawled) {
 		if (m_linkCounts >= m_maxPagesToCrawl) {
 			return;
 		}
 		
 		addUrlListToRepository(links);
-		m_results.add(prettyFormatResultString(crawledHost,RTT));
-		m_linkCounts += 1;
-		
-		System.out.println(m_linkCounts + " URLs crawled.");
+        if (paperJson != "") {
+            synchronized (m_jsonRepositoryLock) {
+                m_jsonRepository.add(paperJson);
+            }
+        }
+
+        if (crawled) {
+            m_results.add(prettyFormatResultString(crawledURL));
+            synchronized (m_linkCountslock) {
+                m_linkCounts += 1;
+                System.out.println(m_linkCounts + " URLs crawled.");
+            }
+        }
 	}
-	
+
+    /**
+     * Returns the length of the JSON repository. This locks on the
+     * repository so that the length will be accurate.
+     * @return the length of the JSON repository.
+     */
+    public int getPaperJsonArrayLength() {
+        int length = 0;
+        synchronized (m_jsonRepositoryLock) {
+            length = m_jsonRepository.size();
+        }
+
+        return length;
+    }
+
+    /**
+     * This returns an instance of the Paper JSON list and clears the list.
+     * @return instance of the Paper JSON list.
+     */
+    public String[] getPaperJsonArray() {
+        String[] res = null;
+        synchronized (m_jsonRepositoryLock) {
+            res = m_jsonRepository.toArray(new String[
+                    m_jsonRepository.size()]);
+            m_jsonRepository.clear();
+        }
+
+        return res;
+    }
+
 	/**
-	 * Pretty formatter for the <host><RTT> string.
-	 * @param crawledHost the host that was visited.
-	 * @param RTT the request time taken to crawl the page.
+	 * Pretty formatter for the <url> string.
+	 * @param crawledURL the url that was visited.
 	 * @return the pretty formatted string.
 	 */
-	private String prettyFormatResultString(String crawledHost, long RTT) {
-		int bufferspace = WHITESPACE.length() - crawledHost.length();
-		
-		if (bufferspace <= 0) {
-			return crawledHost + " " + RTT + " milliseconds";
-		}
-
-		return crawledHost + WHITESPACE.substring(0, bufferspace) + RTT + " milliseconds";
+	private String prettyFormatResultString(String crawledURL) {
+		return crawledURL;
 	}
 }
