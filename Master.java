@@ -59,7 +59,13 @@ public class Master {
 	private int m_maxCrawlers = 1;
 	private ArrayList<String> m_results = new ArrayList<String>();
     private ArrayList<String> m_jsonRepository = new ArrayList<>();
+
+    /**
+     * Locks.
+     */
     private static final Object m_jsonRepositoryLock = new Object();
+    private static final Object m_uriRepositoryLock = new Object();
+    private static final Object m_linkCountslock = new Object();
 	
 	/**
 	 * Constructor for Master.
@@ -126,10 +132,12 @@ public class Master {
 			return;
 		}
 
-		if (!m_seenUrls.contains(uri.toString())) {
-            m_seenUrls.add(uri.toString());
-			m_urisRepository.add(uri);
-		}
+        synchronized (m_uriRepositoryLock) {
+            if (!m_seenUrls.contains(uri.toString())) {
+                m_seenUrls.add(uri.toString());
+                m_urisRepository.add(uri);
+            }
+        }
 	}
 	
 	/**
@@ -180,13 +188,14 @@ public class Master {
 			} catch (InterruptedException e) {
 				System.err.println("Crawling delay interrupted.");
 			}
-			
-			URI uri = m_urisRepository.get(0);
-			m_urisRepository.remove(0);
-			
-			if (uri != null) {
-				m_executorPool.execute(new Crawler(uri, this));
-			}
+
+            synchronized (m_uriRepositoryLock) {
+                URI uri = m_urisRepository.get(0);
+                m_urisRepository.remove(0);
+                if (uri != null) {
+                    m_executorPool.execute(new Crawler(uri, this));
+                }
+            }
 		}
 	}
 	
@@ -237,7 +246,7 @@ public class Master {
      * @param crawledURL the url that was visited.
      * @param crawled checks if the url was crawled successfully.
      */
-	public synchronized void addCrawledDataCallback(String[] links,
+	public void addCrawledDataCallback(String[] links,
                                                     String paperJson,
                                                     String crawledURL,
                                                     boolean crawled) {
@@ -254,8 +263,10 @@ public class Master {
 
         if (crawled) {
             m_results.add(prettyFormatResultString(crawledURL));
-            m_linkCounts += 1;
-            System.out.println(m_linkCounts + " URLs crawled.");
+            synchronized (m_linkCountslock) {
+                m_linkCounts += 1;
+                System.out.println(m_linkCounts + " URLs crawled.");
+            }
         }
 	}
 
