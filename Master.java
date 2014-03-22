@@ -59,7 +59,7 @@ public class Master {
 	private int m_maxCrawlers = 1;
 	private ArrayList<String> m_results = new ArrayList<String>();
     private ArrayList<String> m_jsonRepository = new ArrayList<>();
-
+    private static final Object m_jsonRepositoryLock = new Object();
 	
 	/**
 	 * Constructor for Master.
@@ -217,8 +217,6 @@ public class Master {
 			}
 
 			writer.close();
-
-            System.out.println(m_jsonRepository);
 		} catch (FileNotFoundException e) {
 			System.err.println("FileNotFoundException when writing results" +
 					" to file.");
@@ -249,7 +247,9 @@ public class Master {
 		
 		addUrlListToRepository(links);
         if (paperJson != "") {
-            m_jsonRepository.add(paperJson);
+            synchronized (m_jsonRepositoryLock) {
+                m_jsonRepository.add(paperJson);
+            }
         }
 
         if (crawled) {
@@ -258,7 +258,36 @@ public class Master {
             System.out.println(m_linkCounts + " URLs crawled.");
         }
 	}
-	
+
+    /**
+     * Returns the length of the JSON repository. This locks on the
+     * repository so that the length will be accurate.
+     * @return the length of the JSON repository.
+     */
+    public int getPaperJsonArrayLength() {
+        int length = 0;
+        synchronized (m_jsonRepositoryLock) {
+            length = m_jsonRepository.size();
+        }
+
+        return length;
+    }
+
+    /**
+     * This returns an instance of the Paper JSON list and clears the list.
+     * @return instance of the Paper JSON list.
+     */
+    public String[] getPaperJsonArray() {
+        String[] res = null;
+        synchronized (m_jsonRepositoryLock) {
+            res = m_jsonRepository.toArray(new String[
+                    m_jsonRepository.size()]);
+            m_jsonRepository.clear();
+        }
+
+        return res;
+    }
+
 	/**
 	 * Pretty formatter for the <url> string.
 	 * @param crawledURL the url that was visited.
