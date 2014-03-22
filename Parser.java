@@ -14,8 +14,17 @@ import org.jsoup.select.Elements;
  */
 public class Parser {
 
+    /**
+     * The list of links to crawl next.
+     */
     private ArrayList<String> linksToCrawl = new ArrayList<>();
 
+    /**
+     * Gets the JSON object for the Paper node.
+     * @param html the html string.
+     * @param uri the URI of the HTML page to crawl.
+     * @return the JSON object of the Paper node.
+     */
     public JSONObject getPaperJson(String html, URI uri) {
         String uriHost = uri.getHost();
         String uriQuery = uri.getRawQuery();
@@ -39,10 +48,14 @@ public class Parser {
         json.put("downloadlinks", downloadLinksList);
         json.put("citations", citationsMapList);
 
-        System.out.println(json);
         return json;
     }
 
+    /**
+     * Adds the metadata information to the result JSON.
+     * @param json the result JSON.
+     * @param doc the document object for the HTML page.
+     */
     private void addMetadataToJson(JSONObject json, Document doc) {
         for (Element meta : doc.select("meta")) {
             switch (meta.attr("name")) {
@@ -66,6 +79,11 @@ public class Parser {
         }
     }
 
+    /**
+     * Get paper download links.
+     * @param doc the document object for the HTML page.
+     * @return the list of download links.
+     */
     private ArrayList<String> getDownloadLinks(Document doc) {
         Elements downloadLinks = doc.select("ul#dlinks li a");
         ArrayList<String> downloadLinksList = new ArrayList<>();
@@ -76,6 +94,20 @@ public class Parser {
         return downloadLinksList;
     }
 
+    /**
+     * Gets the list of citations.
+     *
+     * The list of URLS to crawl will be added to the list of URLs to crawl
+     * as well. URLs with the class that indicates that the page only has the
+     * citation will not be crawled.
+     *
+     * The return format will be as follows:
+     * [{"url": <citation URL>, "title": <citation title>}]
+     *
+     * @param uriHost the host of the page to crawl.
+     * @param doc the document object for the HTML page.
+     * @return the list of citation title and url maps.
+     */
     private ArrayList<Map<String, String>> getCitationURLMaps(
             String uriHost, Document doc) {
         Elements citations = doc.select("div#citations tr a");
