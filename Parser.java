@@ -1,9 +1,7 @@
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
@@ -16,7 +14,7 @@ import org.jsoup.select.Elements;
  */
 public class Parser {
 
-    private ArrayList<String> linksToCrawl = new ArrayList<String>();
+    private ArrayList<String> linksToCrawl = new ArrayList<>();
 
     public JSONObject getPaperJson(String html, URI uri) {
         String uriHost = uri.getHost();
@@ -33,6 +31,8 @@ public class Parser {
         ArrayList<Map<String, String>> citationsMapList = getCitationURLMaps(
                 uriHost, doc);
 
+        // Add parsed data to JSON.
+        addMetadataToJson(json, doc);
         json.put("url", uri.toString());
         json.put("doi", doi);
         json.put("abstract", paperAbstract);
@@ -43,9 +43,32 @@ public class Parser {
         return json;
     }
 
+    private void addMetadataToJson(JSONObject json, Document doc) {
+        for (Element meta : doc.select("meta")) {
+            switch (meta.attr("name")) {
+                case "citation_title":
+                    json.put("title", meta.attr("content"));
+                    break;
+                case "citation_authors":
+                    // Remove duplicates
+                    String[] authors = meta.attr("content").trim().split(", ");
+                    Set<String> authorsSet = new HashSet<>(
+                            Arrays.asList(authors));
+
+                    json.put("authors", authorsSet);
+                    break;
+                case "citation_year":
+                    json.put("year", meta.attr("content"));
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     private ArrayList<String> getDownloadLinks(Document doc) {
         Elements downloadLinks = doc.select("ul#dlinks li a");
-        ArrayList<String> downloadLinksList = new ArrayList<String>();
+        ArrayList<String> downloadLinksList = new ArrayList<>();
 
         for (Element l : downloadLinks) {
             downloadLinksList.add(l.attr("href"));
@@ -57,14 +80,13 @@ public class Parser {
             String uriHost, Document doc) {
         Elements citations = doc.select("div#citations tr a");
 
-        ArrayList<Map<String, String>> citationsMapList =
-                new ArrayList<Map<String, String>>();
+        ArrayList<Map<String, String>> citationsMapList = new ArrayList<>();
 
         for (Element c : citations) {
             String citationLink = uriHost + c.attr("href");
             String citationTitle = c.html();
 
-            Map<String, String> citationMap = new HashMap<String, String>();
+            Map<String, String> citationMap = new HashMap<>();
             citationMap.put("url", citationLink);
             citationMap.put("title", citationTitle);
             citationsMapList.add(citationMap);
@@ -89,7 +111,6 @@ public class Parser {
             p.getPaperJson(html, uri);
         } catch (URISyntaxException e) {
             System.err.println("URISyntaxException when adding link: " + url);
-            return;
         } catch (IOException e) {
             e.printStackTrace();
         }
