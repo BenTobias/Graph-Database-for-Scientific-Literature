@@ -4,6 +4,7 @@ CS3103 Concurrent Web Crawler Project
 ## Execution
 ### Compilation
 Include `jsoup-<version>.jar` in your Build Path.
+Include `json-simple-<version>.jar` in your Build Path.
 
 ### Run Program
 Change values in `CrawlerSimulator.java` if necessary. Start crawler by running the `CrawlerSimulator` class.
