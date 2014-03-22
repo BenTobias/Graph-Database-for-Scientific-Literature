@@ -64,7 +64,7 @@ public class Crawler implements Runnable {
 	 * @throws IOException
 	 */
 	private String[] getSiteLinks(String host, String requestPath, int port) 
-			throws UnknownHostException, IOException {
+			throws IOException {
 		
 		if (port == -1) {
 			throw new PortUnreachableException("Invalid port.");
@@ -89,6 +89,41 @@ public class Crawler implements Runnable {
 
 		return absLinks.toArray(new String[0]);
 	}
+
+    /**
+     * Gets the outgoing links present in the request URI. Only absolute links
+     * present in the response HTML page will be returned.
+     * @param host the URI host.
+     * @param requestPath the URI request path relative to the host.
+     * @param port the port number to run the request on.
+     * @return the array of absolute URLs obtained from the response page.
+     * @throws UnknownHostException
+     * @throws IOException
+     */
+    public String getHTML(String host, String requestPath, int port)
+            throws IOException {
+
+        if (port == -1) {
+            throw new PortUnreachableException("Invalid port.");
+        }
+
+        String html;
+        if (port == 80) {
+            Socket socket = new Socket(host, port);
+            sendGETRequest(host, requestPath, socket);
+            html = readDocumentStringFromSocketBuffer(socket);
+            socket.close();
+        }
+        else {
+            SSLSocketFactory sslsocketfactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocket socket = (SSLSocket) sslsocketfactory.createSocket(host, port);
+            sendGETRequest(host, requestPath, socket);
+            html = readDocumentStringFromSocketBuffer(socket);
+            socket.close();
+        }
+
+        return html;
+    }
 
 	/**
 	 * Strip out all the links from the given HTML page.
