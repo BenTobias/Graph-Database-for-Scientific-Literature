@@ -34,6 +34,10 @@ public class Parser {
         return paperJson.toString();
     }
 
+    public String[] getLinksToCrawl() {
+        return linksToCrawl.toArray(new String[linksToCrawl.size()]);
+    }
+
     /**
      * Gets the JSON object for the Paper node.
      * @param html the html string.
@@ -53,7 +57,7 @@ public class Parser {
         String paperAbstract = doc.select("div#abstract p").html();
         ArrayList<String> downloadLinksList = getDownloadLinks(doc);
         ArrayList<Map<String, String>> citationsMapList = getCitationURLMaps(
-                uriHost, doc);
+                uri.getScheme(), uriHost, doc);
 
         // Add parsed data to JSON.
         addMetadataToJson(json, doc);
@@ -119,18 +123,19 @@ public class Parser {
      * The return format will be as follows:
      * [{"url": <citation URL>, "title": <citation title>}]
      *
+     * @param uriScheme the url scheme (eg. http)
      * @param uriHost the host of the page to crawl.
      * @param doc the document object for the HTML page.
      * @return the list of citation title and url maps.
      */
     private ArrayList<Map<String, String>> getCitationURLMaps(
-            String uriHost, Document doc) {
+            String uriScheme, String uriHost, Document doc) {
         Elements citations = doc.select("div#citations tr a");
 
         ArrayList<Map<String, String>> citationsMapList = new ArrayList<>();
 
         for (Element c : citations) {
-            String citationLink = uriHost + c.attr("href");
+            String citationLink = uriScheme + "://" + uriHost + c.attr("href");
             String citationTitle = c.html();
 
             Map<String, String> citationMap = new HashMap<>();
@@ -148,13 +153,15 @@ public class Parser {
 
     public static void main(String[] args) {
         Parser p = new Parser();
-        String url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.248.5252";
+//        String url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.248.5252";
+        String url = "http://citeseerx.ist.psu.edu/viewdoc/summary?cid=86724";
         URI uri;
         try {
             uri = new URI(url);
             System.out.println(uri);
             Crawler c = new Crawler(uri, null);
             String html = c.getHTML(uri.getHost(), uri.getRawPath() + "?" + uri.getQuery(), 80);
+            System.out.println(html);
             p.getPaperJson(html, uri);
         } catch (URISyntaxException e) {
             System.err.println("URISyntaxException when adding link: " + url);
