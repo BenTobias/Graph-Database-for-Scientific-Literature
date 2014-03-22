@@ -20,6 +20,21 @@ public class Parser {
     private ArrayList<String> linksToCrawl = new ArrayList<>();
 
     /**
+     * Public API for classes to parse the HTML string to a JSON string.
+     * @param html the html string.
+     * @param uri the URI of the HTML page to crawl.
+     * @return the JSON string containing the data according to the
+     *      predetermined schema.
+     */
+    public String parseHtml(String html, URI uri) {
+        JSONObject paperJson = getPaperJson(html, uri);
+
+        // TODO(benedict): Pass links to controller to crawl.
+
+        return paperJson.toString();
+    }
+
+    /**
      * Gets the JSON object for the Paper node.
      * @param html the html string.
      * @param uri the URI of the HTML page to crawl.
