@@ -18,29 +18,45 @@ public class Parser {
 
     private ArrayList<String> linksToCrawl = new ArrayList<String>();
 
-    public JSONObject getPaperJson(String html, String uriHost,
-                                   String uriQuery) {
+    public JSONObject getPaperJson(String html, URI uri) {
+        String uriHost = uri.getHost();
+        String uriQuery = uri.getRawQuery();
+
         JSONObject json = new JSONObject();
 
         String doi = uriQuery.split("=")[1];
 
         Document doc = Jsoup.parse(html);
+
         String paperAbstract = doc.select("div#abstract p").html();
-        Elements citations = doc.select("div#citations tr a");
+        ArrayList<String> downloadLinksList = getDownloadLinks(doc);
+        ArrayList<Map<String, String>> citationsMapList = getCitationURLMaps(
+                uriHost, doc);
 
-        ArrayList<Map<String, String>> citationsMapList =
-                getCitationURLMapList(uriHost, citations);
-
+        json.put("url", uri.toString());
         json.put("doi", doi);
         json.put("abstract", paperAbstract);
+        json.put("downloadlinks", downloadLinksList);
         json.put("citations", citationsMapList);
 
         System.out.println(json);
         return json;
     }
 
-    private ArrayList<Map<String, String>> getCitationURLMapList(
-            String uriHost, Elements citations) {
+    private ArrayList<String> getDownloadLinks(Document doc) {
+        Elements downloadLinks = doc.select("ul#dlinks li a");
+        ArrayList<String> downloadLinksList = new ArrayList<String>();
+
+        for (Element l : downloadLinks) {
+            downloadLinksList.add(l.attr("href"));
+        }
+        return downloadLinksList;
+    }
+
+    private ArrayList<Map<String, String>> getCitationURLMaps(
+            String uriHost, Document doc) {
+        Elements citations = doc.select("div#citations tr a");
+
         ArrayList<Map<String, String>> citationsMapList =
                 new ArrayList<Map<String, String>>();
 
@@ -70,7 +86,7 @@ public class Parser {
             System.out.println(uri);
             Crawler c = new Crawler(uri, null);
             String html = c.getHTML(uri.getHost(), uri.getRawPath() + "?" + uri.getQuery(), 80);
-            p.getPaperJson(html, uri.getHost(), uri.getRawQuery());
+            p.getPaperJson(html, uri);
         } catch (URISyntaxException e) {
             System.err.println("URISyntaxException when adding link: " + url);
             return;
