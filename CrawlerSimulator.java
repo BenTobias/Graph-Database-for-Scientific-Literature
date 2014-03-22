@@ -19,9 +19,9 @@ public class CrawlerSimulator {
 	 */
 	public static void main(String[] args) {
 		String[] seedUrls = {
-				"http://www.google.com"
+				"http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.248.5252"
 				};
-		int maxURLs = 100;
+		int maxURLs = 10;
 		int maxCrawlers = 128;
 		
 		try {
