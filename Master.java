@@ -185,7 +185,6 @@ public class Master {
 			m_urisRepository.remove(0);
 			
 			if (uri != null) {
-                System.out.println(uri);
 				m_executorPool.execute(new Crawler(uri, this));
 			}
 		}
@@ -238,21 +237,26 @@ public class Master {
      * @param links the URL strings to add into the repository.
      * @param paperJson the paper node JSON string.
      * @param crawledURL the url that was visited.
+     * @param crawled checks if the url was crawled successfully.
      */
 	public synchronized void addCrawledDataCallback(String[] links,
                                                     String paperJson,
-                                                    String crawledURL) {
+                                                    String crawledURL,
+                                                    boolean crawled) {
 		if (m_linkCounts >= m_maxPagesToCrawl) {
 			return;
 		}
 		
 		addUrlListToRepository(links);
-        m_jsonRepository.add(paperJson);
+        if (paperJson != "") {
+            m_jsonRepository.add(paperJson);
+        }
 
-		m_results.add(prettyFormatResultString(crawledURL));
-		m_linkCounts += 1;
-		
-		System.out.println(m_linkCounts + " URLs crawled.");
+        if (crawled) {
+            m_results.add(prettyFormatResultString(crawledURL));
+            m_linkCounts += 1;
+            System.out.println(m_linkCounts + " URLs crawled.");
+        }
 	}
 	
 	/**

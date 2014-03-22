@@ -33,7 +33,8 @@ public class Crawler implements Runnable {
 			"\r\nConnection: close\r\n\r\n";
 	private URI m_uri;
 	private Master m_master;
-    private String m_paperJson;
+    private String m_paperJson = "";
+    private boolean crawled = false;
 
 
 	/**
@@ -83,8 +84,7 @@ public class Crawler implements Runnable {
         if (html.indexOf("http") == 0) {
             try {
                 m_uri = new URI(html);
-                return getSiteLinks(m_uri.getHost(), m_uri.getPath() + "?" +
-                        m_uri.getRawQuery(), getPort(m_uri));
+                return new String[] {html};
             } catch (URISyntaxException e) {
                 System.err.println("URISyntaxException when adding link: "
                         + html);
@@ -92,6 +92,7 @@ public class Crawler implements Runnable {
             }
         }
 
+        crawled = true;
         Parser parser = new Parser();
         m_paperJson = parser.parseHtml(html, m_uri);
 
@@ -275,7 +276,7 @@ public class Crawler implements Runnable {
 		
 		if (links != null && (m_paperJson != null)) {
 			m_master.addCrawledDataCallback(links, m_paperJson,
-                    m_uri.toString());
+                    m_uri.toString(), crawled);
 		}
 		
 		return;
