@@ -9,10 +9,14 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+
+
 
 
 
@@ -66,11 +70,16 @@ import com.mongodb.util.JSON;
  */
 public class Coordinator {
 	
-	static int port = 15001;
 	private static final ByteBuffer buffer = ByteBuffer.allocate( 60000 );
 	static private Charset cs = Charset.forName("ASCII");
     static CharsetDecoder decoder = cs.newDecoder();
+    static CharsetEncoder encoder = cs.newEncoder();
     private static DBhelper db = new DBhelper();
+    
+    //configuration
+    static int port = 15001;
+    private static int crawltimeout = 60;
+    private static int defaultlimit = 100;
 	
 	/*
 	 * This looks scary, but this basically grabs any connection runs the function process
@@ -165,7 +174,7 @@ public class Coordinator {
 	  //Check message type, there are 2 types of messages.
 	    if(msg.get("cmd").toString().equals("PUT_URLS") )
 	    {
-	    	BasicDBList  urls = ((BasicDBList )msg.get("URLS")); //i hope this works.
+	    	BasicDBList urls = ((BasicDBList )msg.get("URLS"));
 	    	DBCollection papers_db = db.GetCollection("PaperNodes");
 	    	for(int i = 0;i<urls.size();i++)
 	    	{
@@ -181,25 +190,45 @@ public class Coordinator {
 	    			obj.put("URL", (String)urls.get(i));
 	    			obj.put("Crawl_status", "Uncrawled");
 	    			obj.put("Crawl_date", new Date(0)); //this is basically, much long time ago. So we can do comparisons
-	    			//actually insert into database.
+	    			//actually save into database.
 	    			papers_db.insert(obj);
 	    		}
 	    		else
 	    			assert(false); //impossible to have more than 1 identical URL.
 	    	}
-	    }else if(msg.get("cmd").toString().equals("GET_URLS")){
 	    	
+	    }else if(msg.get("cmd").toString().equals("GET_URLS")){
+	    	//find results, update the date to now and status to pending, send results.
+	    	DBCollection papers_db = db.GetCollection("PaperNodes");
+	    	
+	    	int limit;
+	    	try{
+	    	limit = Integer.parseInt((String) msg.get("limit"));
+	    	} catch(NumberFormatException e)
+	    	{
+	    		limit = defaultlimit;
+	    	}
+	    	DBObject query = (DBObject)JSON.parse("{ $or: [{Crawl_status: \"Uncrawled\"}, {Crawl_status: \"Pending\"}] }");
+	    	//anything created before now-crawltimeout is acceptable.
+	    	query.put("Crawl_date", new BasicDBObject("$lt", new Date((new Date()).getTime() - crawltimeout*1000)));
+	    	List<DBObject> papers = papers_db.find(query).limit(limit).toArray();
+	    	//update the database
+	    	BasicDBList urls = new BasicDBList();
+	    	for(DBObject paper: papers)
+	    	{
+	    		paper.put("Crawl_status", "Pending");
+	    		paper.put("Crawl_date", new Date()); //now
+	    		urls.add((String)paper.get("URL"));
+	    		papers_db.save(paper);
+	    	}
+	    	String os = JSON.serialize(new BasicDBObject("URLS", urls));
+	    	sc.write(encoder.encode(CharBuffer.wrap(os)));
 	    }else
 	    {
 	    	System.out.println("Invalid command: '"+msg.get("cmd")+"'");
 	    	return false;
 	    }
 	    
-	    		
-	    		
-	    	//GET_URLS
-	    		//Retrieve N URLs from database, 
-	    			//give it to them and mark as "Tentative"
 		return true;
 	}
 	
