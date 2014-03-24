@@ -3,10 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.PortUnreachableException;
-import java.net.Socket;
-import java.net.URI;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.ArrayList;
 
 import javax.net.ssl.SSLSocket;
@@ -36,11 +33,8 @@ public class Crawler implements Runnable {
 			"\r\nConnection: close\r\n\r\n";
 	private URI m_uri;
 	private Master m_master;
-	
-	/**
-	 * The total RTT (request and response time).
-	 */
-	private long m_requestTime = 0;
+    private String m_paperJson = "";
+    private boolean crawled = false;
 
 
 	/**
@@ -64,7 +58,7 @@ public class Crawler implements Runnable {
 	 * @throws IOException
 	 */
 	private String[] getSiteLinks(String host, String requestPath, int port) 
-			throws UnknownHostException, IOException {
+			throws IOException {
 		
 		if (port == -1) {
 			throw new PortUnreachableException("Invalid port.");
@@ -78,17 +72,68 @@ public class Crawler implements Runnable {
 			socket.close();
 		}
 		else {
-			SSLSocketFactory sslsocketfactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+			SSLSocketFactory sslsocketfactory =
+                    (SSLSocketFactory) SSLSocketFactory.getDefault();
 	        SSLSocket socket = (SSLSocket) sslsocketfactory.createSocket(host, port);
 	        sendGETRequest(host, requestPath, socket);
 			html = readDocumentStringFromSocketBuffer(socket);
 			socket.close();
 		}
-		
-		ArrayList<String> absLinks = getLinksFromHTMLPage(html);
 
-		return absLinks.toArray(new String[0]);
+        // The HTML string is a url.
+        if (html.indexOf("http") == 0) {
+            try {
+                m_uri = new URI(html);
+                return new String[] {html};
+            } catch (URISyntaxException e) {
+                System.err.println("URISyntaxException when adding link: "
+                        + html);
+                return new String[0];
+            }
+        }
+
+        crawled = true;
+        Parser parser = new Parser();
+        m_paperJson = parser.parseHtml(html, m_uri);
+
+		return parser.getLinksToCrawl();
 	}
+
+    /**
+     * Gets the outgoing links present in the request URI. Only absolute links
+     * present in the response HTML page will be returned.
+     * @param host the URI host.
+     * @param requestPath the URI request path relative to the host.
+     * @param port the port number to run the request on.
+     * @return the array of absolute URLs obtained from the response page.
+     * @throws UnknownHostException
+     * @throws IOException
+     */
+    public String getHTML(String host, String requestPath, int port)
+            throws IOException {
+
+        if (port == -1) {
+            throw new PortUnreachableException("Invalid port.");
+        }
+
+        String html;
+        if (port == 80) {
+            Socket socket = new Socket(host, port);
+            sendGETRequest(host, requestPath, socket);
+            html = readDocumentStringFromSocketBuffer(socket);
+            socket.close();
+        }
+        else {
+            SSLSocketFactory sslsocketfactory =
+                    (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocket socket = (SSLSocket) sslsocketfactory.createSocket(host, port);
+            sendGETRequest(host, requestPath, socket);
+            html = readDocumentStringFromSocketBuffer(socket);
+            socket.close();
+        }
+
+        return html;
+    }
 
 	/**
 	 * Strip out all the links from the given HTML page.
@@ -124,7 +169,8 @@ public class Crawler implements Runnable {
 	/**
 	 * Obtain the HTML document string from the socket buffer.
 	 * @param socket the socket connecting to the request URI.
-	 * @return the HTML document string.
+	 * @return the HTML document string. If a redirect url exists, return the
+     *      redirect url instead.
 	 * @throws IOException
 	 */
 	private String readDocumentStringFromSocketBuffer(Socket socket)
@@ -134,19 +180,28 @@ public class Crawler implements Runnable {
 		        new InputStreamReader(inputStream));
 		
 		StringBuffer sb = new StringBuffer();
-		
-		// Profile response time
-		long start = System.currentTimeMillis();
 
 		sb.append(serverReader.readLine());
-		
-		long end = System.currentTimeMillis();
-		m_requestTime += (end - start);
 
-		String line = "";
+		String line;
+        int lineCount = 0;
+        String redirectUrl = null;
+
 		while ((line = serverReader.readLine()) != null) {
+            if (lineCount < 6) {
+                if (line.indexOf("Location: http") != -1) {
+                    int index = line.indexOf("http://");
+                    redirectUrl = line.substring(index);
+                    break;
+                }
+                lineCount += 1;
+            }
 		    sb.append(line);
 		}
+
+        if (redirectUrl != null) {
+            return redirectUrl;
+        }
 
 		return sb.toString();
 	}
@@ -164,13 +219,8 @@ public class Crawler implements Runnable {
 				socket.getOutputStream());
 		String formattedGetRequestString = String.format(GET_REQUEST_STRING,
 				requestPath, host);
-		
-		// Profile Request Time
-		long start = System.currentTimeMillis();
+
 		request.writeBytes(formattedGetRequestString);
-		long end = System.currentTimeMillis();
-		
-		m_requestTime += (end - start);
 	}
 
 	/**
@@ -207,8 +257,9 @@ public class Crawler implements Runnable {
 		String[] links = null;
 
 		try {
-			links = getSiteLinks(m_uri.getHost(), m_uri.getRawPath(),
-					getPort(m_uri));
+            String getRequestPath = m_uri.getPath() + "?" + m_uri.getQuery();
+			links = getSiteLinks(m_uri.getHost(), getRequestPath,
+                    getPort(m_uri));
 		} catch (UnknownHostException e) {
 			System.err.println("UnknownHostException during GET request: " + 
 					m_uri.toString());
@@ -223,9 +274,9 @@ public class Crawler implements Runnable {
 			return;
 		}
 		
-		if (links != null) {
-			m_master.addCrawledLinksCallback(links, m_uri.getHost(),
-					m_requestTime);
+		if (links != null && (m_paperJson != null)) {
+			m_master.addCrawledDataCallback(links, m_paperJson,
+                    m_uri.toString(), crawled);
 		}
 		
 		return;

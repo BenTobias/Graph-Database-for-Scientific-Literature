@@ -15,16 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-
-
-
-
-
-
-
-
-
-
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 //refactor later.
@@ -40,7 +30,8 @@ import com.mongodb.util.JSON;
  * TODO: implement SSL support.
  * http://stilius.net/java/java_ssl.php
  * 
- * TODO: periodically prune the database.
+ * TODO: periodically prune the database. <- in another subfile.
+ * TODO: test changes to protocol (basically i put in the fact that it says cmd, ok)
  */
 
 
@@ -70,6 +61,27 @@ import com.mongodb.util.JSON;
  */
 public class Coordinator {
 	
+	private static class ChannelState
+	{
+		public StringBuilder input;
+		public ByteBuffer output;
+		public String mode;
+		
+		ChannelState(int sz)
+		{
+			input = new StringBuilder();
+			output = ByteBuffer.allocate(sz);
+			mode = "";
+		}
+		ChannelState(int sz, String initmode)
+		{
+			input = new StringBuilder();
+			output = ByteBuffer.allocate(sz);
+			mode = initmode;
+		}
+		
+	}
+	
 	private static final ByteBuffer buffer = ByteBuffer.allocate( 60000 );
 	static private Charset cs = Charset.forName("ASCII");
     static CharsetDecoder decoder = cs.newDecoder();
@@ -80,7 +92,7 @@ public class Coordinator {
     static int port = 15001;
     private static int crawltimeout = 60;
     private static int defaultlimit = 100;
-	
+	private static int OutBufferSize = 32768;
 	/*
 	 * This looks scary, but this basically grabs any connection runs the function process
 	 */
@@ -111,9 +123,10 @@ public class Coordinator {
 						System.out.println("accept");
 						ServerSocketChannel sc = (ServerSocketChannel)key.channel();
 						SocketChannel newsocket = sc.accept();
-						//TODO: check this code.
 						newsocket.configureBlocking(false);
-						newsocket.register(selector, SelectionKey.OP_READ);
+						SelectionKey newkey = newsocket.register(selector, SelectionKey.OP_READ);
+						//i need to attach a input and output buffer to this.
+						newkey.attach(new ChannelState(OutBufferSize, "READ"));
 					}else if ((key.readyOps() & SelectionKey.OP_READ) ==
 				            SelectionKey.OP_READ) {
 						System.out.println("read");
@@ -121,7 +134,7 @@ public class Coordinator {
 						try{
 							sc = (SocketChannel)key.channel();
 							//process input here.
-							boolean ok = process(sc); //this always rips all data from the buffer.
+							boolean ok = process(sc, (ChannelState)key.attachment()); //this always rips all data from the buffer.
 						    if(!ok)
 						    {
 						    	key.cancel();
@@ -136,8 +149,19 @@ public class Coordinator {
 						    	}
 						    	System.out.println("Connection closed");
 						    }
-						}catch(IOException e)
+						}catch(IOException e) //TODO: tidy exception handling.
 						{
+							Socket s = null;
+							try{
+								
+					    		s = sc.socket();
+					    		s.close();
+					    		
+					    	}catch(IOException ie)
+					    	{
+					    		System.err.println("Error closing socket "+s+": "+ie);
+					    	}
+							
 							e.printStackTrace();
 						}
 					}
@@ -153,11 +177,11 @@ public class Coordinator {
 	 * See top for PROTOCOL
 	 * 
 	 */
-	static boolean process(SocketChannel sc) throws Exception
+	static boolean process(SocketChannel sc, ChannelState cs) throws Exception
 	{
 		//TODO: check correctness of write commands in non-blocking mode.
 		buffer.clear();
-	    int t = sc.read( buffer );
+	    int t = sc.read(buffer);
 	    buffer.flip();
 	    
 	    // If no data, close the connection
@@ -167,11 +191,17 @@ public class Coordinator {
 	    //do processing here.
 	    
 	    CharBuffer cbuf = decoder.decode(buffer);
-	    String s = cbuf.toString();
-	    DBObject msg = (DBObject)JSON.parse(s);
+	    cs.input.append(cbuf.toString());
+	    //System.out.println(s);
+	    DBObject msg;
+	    try{
+	    	msg = (DBObject)JSON.parse(cs.input.toString());
+	    }catch(Exception e)
+	    {
+	    	return true; //there is more (to be done), clearly.
+	    }
+	    //Check message type, there are 2 types of messages.
 	    System.out.println(msg);
-	    
-	  //Check message type, there are 2 types of messages.
 	    if(msg.get("cmd").toString().equals("PUT_URLS") )
 	    {
 	    	BasicDBList urls = ((BasicDBList )msg.get("URLS"));
@@ -197,6 +227,9 @@ public class Coordinator {
 	    			assert(false); //impossible to have more than 1 identical URL.
 	    	}
 	    	
+	    	cs.output = encoder.encode(CharBuffer.wrap("{cmd: \"OK\""));
+	    	//TODO: make non-blocking. But i'm lazeee
+	    	
 	    }else if(msg.get("cmd").toString().equals("GET_URLS")){
 	    	//find results, update the date to now and status to pending, send results.
 	    	DBCollection papers_db = db.GetCollection("PaperNodes");
@@ -221,15 +254,20 @@ public class Coordinator {
 	    		urls.add((String)paper.get("URL"));
 	    		papers_db.save(paper);
 	    	}
-	    	String os = JSON.serialize(new BasicDBObject("URLS", urls));
-	    	sc.write(encoder.encode(CharBuffer.wrap(os)));
+	    	DBObject result = new BasicDBObject("URLS", urls);
+	    	result.put("cmd", "OK");
+	    	String os = JSON.serialize(result);
+	    	cs.output = encoder.encode(CharBuffer.wrap(os));
 	    }else
 	    {
 	    	System.out.println("Invalid command: '"+msg.get("cmd")+"'");
 	    	return false;
 	    }
 	    
-		return true;
+	  //TODO: make non-blocking. But i'm lazeee
+	    while(cs.output.hasRemaining())
+    		sc.write(cs.output);
+	    return false; //i don't need the connection anymore
 	}
 	
 	/*static void printByteBuffer(ByteBuffer buffer)
