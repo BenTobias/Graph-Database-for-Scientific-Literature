@@ -20,6 +20,20 @@ Run main method in `DBManager.java`.
 
 Check database using `mongo` command.
 
+To persist a list of paper json arrays to database:
+
+```
+DBManager manager = new DBManager();
+manager.insertDocuments(jsonStrings, new InsertDocumentsCallback(){
+		@Override
+		public void onFinish(List<String> failedUrls) {
+			if(failedUrls.size() > 0) {
+				// Handle failed docs here...
+			}			
+		}
+	});
+```
+
 
 
 ## Implementation
