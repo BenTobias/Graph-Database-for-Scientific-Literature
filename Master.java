@@ -8,6 +8,12 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -191,6 +197,27 @@ public class Master {
 
 	private void executeCrawl() {
 		while ((m_linkCounts < m_maxPagesToCrawl) && !isDeadEnd()) {
+			synchronized(m_jsonRepositoryLock)
+			{
+				if(m_jsonRepository.size()> 10)
+				{
+					try {
+						//TODO: dunk JSONs into server
+						System.out.println("PUT_JSONS");
+						JSONObject data = new JSONObject();
+						data.put("cmd", "PUT_JSONS");
+						JSONArray urllist = new JSONArray(m_jsonRepository);
+						data.put("data", urllist);
+						System.out.println(data.toString());
+						TCPQuery(data.toString());
+					}catch(JSONException e)
+					{
+						System.out.println("Programmer fail");
+						e.printStackTrace();
+					}
+					m_jsonRepository.clear();
+				}
+			}
 			synchronized(m_uriRepositoryLock)
 			{
 				if(m_urisRepository.size() > urisThreshold || (m_crawlable.isEmpty() && m_urisRepository.size()>0))
@@ -373,14 +400,16 @@ public class Master {
 		return crawledURL;
 	}
 	//this is done in a synchronous manner
-	private static String TCPQuery(String query)
+	/*private static String TCPQuery(String query)
 	{
 		try{ //TODO: rewrite with a finally clause.
 			 Socket conn = new Socket(CoordinatorAddress, CoordinatorPort);
 			 DataInputStream input = new DataInputStream(conn.getInputStream());
 			 DataOutputStream output = new DataOutputStream(conn.getOutputStream());
 			 //send the query
-			 output.writeBytes(query);
+			 //output.writeUTF(query); //Compatibility??
+			 //output.writeBytes(query);
+			 output.writeBytes(new String(query.getBytes("UTF-8")));
 			//get the results.
 			 String responseLine;
 			 StringBuilder s = new StringBuilder();
@@ -392,6 +421,34 @@ public class Master {
 	         conn.close();
 	         return s.toString();
 		}catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}*/
+	
+	private static String TCPQuery(String query)
+	{	
+		try{
+		Socket conn = new Socket(CoordinatorAddress, CoordinatorPort);
+		//SocketChannel sc = conn.getChannel();
+		DataOutputStream output = new DataOutputStream(conn.getOutputStream());
+		Charset cs = Charset.forName("UTF-8");
+	    CharsetEncoder encoder = cs.newEncoder();
+		ByteBuffer b = encoder.encode(CharBuffer.wrap(query));
+		output.write(b.array());
+		String responseLine;
+		StringBuilder s = new StringBuilder();
+		DataInputStream input = new DataInputStream(conn.getInputStream());
+		while((responseLine = input.readLine())!=null) //TODO: fix deprecated code.
+			 s.append(responseLine); 
+		 
+        input.close();
+        output.close();
+        conn.close();
+        return s.toString();
+		}
+		catch(Exception e)
 		{
 			e.printStackTrace();
 		}

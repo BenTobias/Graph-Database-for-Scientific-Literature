@@ -10,6 +10,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -82,11 +83,26 @@ public class Coordinator {
 		
 	}
 	
+	//i think i'm using too many globals =(
 	private static final ByteBuffer buffer = ByteBuffer.allocate( 60000 );
-	static private Charset cs = Charset.forName("ASCII");
+	static private Charset cs = Charset.forName("UTF-8");
     static CharsetDecoder decoder = cs.newDecoder();
     static CharsetEncoder encoder = cs.newEncoder();
     private static DBhelper db = new DBhelper();
+    private static ArrayList<String> JSONStrings = new ArrayList<String>();
+    private static DBManager DBMgr = new DBManager();
+    private static class callback implements DBManager.InsertDocumentsCallback{
+
+		@Override
+		public void onFinish(List<String> failedUrls) {
+			System.out.println("Could not process: ");
+			for(String s: failedUrls)
+				System.out.print(s+",");
+			System.out.println("");
+			
+		}
+    
+    }
     
     //configuration
     static int port = 15001;
@@ -97,6 +113,8 @@ public class Coordinator {
 	 * This looks scary, but this basically grabs any connection runs the function process
 	 */
 	public static void main(String[] args) {
+		
+		
 		try{
 			Selector selector = Selector.open();
 		
@@ -129,7 +147,6 @@ public class Coordinator {
 						newkey.attach(new ChannelState(OutBufferSize, "READ"));
 					}else if ((key.readyOps() & SelectionKey.OP_READ) ==
 				            SelectionKey.OP_READ) {
-						System.out.println("read");
 						SocketChannel sc = null;
 						try{
 							sc = (SocketChannel)key.channel();
@@ -189,19 +206,23 @@ public class Coordinator {
 	    	return false;
 	    }
 	    //do processing here.
+	    CharBuffer cbuf;
+	    DBObject msg;
 	    
-	    CharBuffer cbuf = decoder.decode(buffer);
+	    try{
+	    cbuf = decoder.decode(buffer);
 	    cs.input.append(cbuf.toString());
 	    //System.out.println(s);
-	    DBObject msg;
-	    try{
+	    
+	   
 	    	msg = (DBObject)JSON.parse(cs.input.toString());
 	    }catch(Exception e)
 	    {
+	    	System.out.println(e.getMessage());
 	    	return true; //there is more (to be done), clearly.
 	    }
 	    //Check message type, there are 2 types of messages.
-	    System.out.println(msg);
+	    //System.out.println(msg);
 	    if(msg.get("cmd").toString().equals("PUT_URLS") )
 	    {
 	    	BasicDBList urls = ((BasicDBList )msg.get("URLS"));
@@ -228,7 +249,6 @@ public class Coordinator {
 	    	}
 	    	
 	    	cs.output = encoder.encode(CharBuffer.wrap("{cmd: \"OK\""));
-	    	//TODO: make non-blocking. But i'm lazeee
 	    	
 	    }else if(msg.get("cmd").toString().equals("GET_URLS")){
 	    	//find results, update the date to now and status to pending, send results.
@@ -258,13 +278,25 @@ public class Coordinator {
 	    	result.put("cmd", "OK");
 	    	String os = JSON.serialize(result);
 	    	cs.output = encoder.encode(CharBuffer.wrap(os));
-	    }else
+	    }else if(msg.get("cmd").toString().equals("PUT_JSONS"))
+	    {
+	    	System.out.println(msg);
+	    	BasicDBList data = ((BasicDBList )msg.get("data"));
+	    	for(int i = 0;i<data.size();i++)
+	    	{
+	    		JSONStrings.add((String)data.get(i));
+	    	}
+	    	
+	    	DBMgr.insertDocuments((ArrayList<String>)JSONStrings.clone(), new callback());
+	    	JSONStrings.clear();
+	    	cs.output = encoder.encode(CharBuffer.wrap("{cmd: \"OK\""));
+	    }
+	    else
 	    {
 	    	System.out.println("Invalid command: '"+msg.get("cmd")+"'");
 	    	return false;
 	    }
-	    
-	  //TODO: make non-blocking. But i'm lazeee
+	    //TODO: make non-blocking. But i'm lazeee
 	    while(cs.output.hasRemaining())
     		sc.write(cs.output);
 	    return false; //i don't need the connection anymore
