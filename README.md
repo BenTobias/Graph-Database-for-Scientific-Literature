@@ -2,23 +2,27 @@ CS3103 Concurrent Web Crawler Project
 ==================
 
 ## Execution
+
 ### Compilation
--Coordinator
-Include java-json.jar
-Include mongo-<version>.jar
+1. Coordinator
+	- Include `java-json.jar` and `mongo-<version>.jar`.
 
--Crawler
-Include `jsoup-<version>.jar` in your Build Path.
-
+2. Crawler
+	- Include `jsoup-<version>.jar`.
 
 ### Run Program
--Coordinator
-Compile Coordinator, by running it once in eclipse.
-Navigate to your eclipse workspace folder
-Start Coordinator by java -cp ".;java-json.jar;mongo-2.10.1.jar" Coordinator
+1. Active Mongo DB
+	- Run `mongod` or `mongod --dbpath <path to your database folder>`
+	- Run `mongo` to access database.
+2. Run Coordinator
+	- Compile Coordinator, by running it once in eclipse.
+	- Navigate to your eclipse workspace folder.
+	- Start Coordinator by `java -cp ".;java-json.jar;mongo-2.10.1.jar" Coordinator`
+	- Mac users `java -cp ".:../lib/*" Coordinator`. (Suppose your workspace folder has `src/`, `bin/` and `lib/` where `lib/` folder has all jar files).
 
--Crawler
-Change values in `CrawlerSimulator.java` if necessary. Start crawler by running the `CrawlerSimulator` class.
+3. Run Crawler
+	- Change values in `CrawlerSimulator.java` if necessary.
+	- Start crawler by running the `CrawlerSimulator` class.
 
 Links will be written to `results.txt`.
 
