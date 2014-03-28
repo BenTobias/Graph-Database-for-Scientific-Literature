@@ -18,14 +18,11 @@ import java.util.Set;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
-//refactor later.
-import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.Mongo;
-import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
+//refactor later.
 
 /*
  * TODO: implement SSL support.
