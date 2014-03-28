@@ -85,7 +85,7 @@ public class Coordinator {
 	static private Charset cs = Charset.forName("UTF-8");
     static CharsetDecoder decoder = cs.newDecoder();
     static CharsetEncoder encoder = cs.newEncoder();
-    private static DBhelper db = new DBhelper();
+    private static DBHelper db = new DBHelper();
     private static ArrayList<String> JSONStrings = new ArrayList<String>();
     private static DBManager DBMgr = new DBManager();
     private static class callback implements DBManager.InsertDocumentsCallback{
