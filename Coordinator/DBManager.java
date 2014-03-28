@@ -43,6 +43,21 @@ public class DBManager {
 			System.out.println("DB CONNECTION ERROR" + e.getLocalizedMessage());
 		}
 	}
+	
+	public void insertDocuments(List<String> paperJSONStrings, InsertDocumentsCallback callback) {
+		List<String> failedURLs = new ArrayList<String>();
+		for(int i = 0; i < paperJSONStrings.size(); i++) {
+			try {
+				JSONObject doc = new JSONObject(paperJSONStrings.get(i));
+				ObjectId id = insert(doc);
+				if(id == null) failedURLs.add(doc.getString("url"));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		callback.onFinish(failedURLs);
+	}
 
 	private ObjectId findAuthorIdByName(String authorName) {
 		BasicDBObject searchQuery = new BasicDBObject();
@@ -54,24 +69,6 @@ public class DBManager {
 		return null;
 	}
 	
-	private ObjectId insertAuthor(String authorName) {
-		BasicDBObject authorDoc = new BasicDBObject();
-		authorDoc.put("name", authorName);
-		authorDoc.put("createdDate", new Date());
-		authorCollection.insert(authorDoc);
-		
-		return (ObjectId)authorDoc.get( "_id" );
-	}
-	
-	
-	private ObjectId insertPaper(String title) {
-		BasicDBObject paperDoc = new BasicDBObject();
-		paperDoc.put("title", title);
-		paperCollection.insert(paperDoc);
-		
-		return (ObjectId)paperDoc.get( "_id" );
-	}
-	
 	private ObjectId findPaperIdByField(String field, String value) {
 		BasicDBObject searchQuery = new BasicDBObject();
 		searchQuery.put(field, value);
@@ -81,8 +78,25 @@ public class DBManager {
 		}
 		return null;
 	}
+	
+	private ObjectId insertTempAuthor(String authorName) {
+		BasicDBObject authorDoc = new BasicDBObject();
+		authorDoc.put("name", authorName);
+		authorDoc.put("createdDate", new Date());
+		authorCollection.insert(authorDoc);
 		
-	private void insert(JSONObject data) {
+		return (ObjectId)authorDoc.get( "_id" );
+	}
+	
+	private ObjectId insertTempPaper(String title) {
+		BasicDBObject paperDoc = new BasicDBObject();
+		paperDoc.put("title", title);
+		paperCollection.insert(paperDoc);
+		
+		return (ObjectId)paperDoc.get( "_id" );
+	}
+		
+	private ObjectId insert(JSONObject data) {
 		
 		try {
 			// Get author IDs.
@@ -92,7 +106,7 @@ public class DBManager {
 				String authorName = authors.getString(i);
 				ObjectId id = findAuthorIdByName(authorName);
 				if(id == null) {
-					id = insertAuthor(authorName);
+					id = insertTempAuthor(authorName);
 				}
 				authorIds.add(id);
 			}
@@ -106,7 +120,7 @@ public class DBManager {
 				String title = citations.getJSONObject(i).getString("title");
 				ObjectId id = findPaperIdByField("title", title);
 				if(id == null) {
-					id = insertPaper(title);
+					id = insertTempPaper(title);
 				}
 				citationIds.add(id);
 			}
@@ -132,6 +146,8 @@ public class DBManager {
 				paperDoc.put("authors", authorIds);
 				paperDoc.put("citations", citationIds);
 				paperCollection.insert(paperDoc);
+				
+				paperId = (ObjectId)paperDoc.get( "_id" );
 			} else {
 				// If paper already exists, update last_crawled field
 				BasicDBObject newPaper = new BasicDBObject();
@@ -148,10 +164,12 @@ public class DBManager {
 			for(int i = 0; i < citationIds.size(); i++) {
 				addPaperToPaper(paperId, citationIds.get(i));
 			}
-
+			
+			return paperId;
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+		return null;
 	}
 
 	/**
@@ -189,6 +207,9 @@ public class DBManager {
 		authorCollection.update(searchQuery, newAuthor);
 	}
 	
+	public static interface InsertDocumentsCallback {
+		public void onFinish(List<String> failedUrls);
+	}
 
 	public static void main(String[] args) {
 		Parser p = new Parser();
@@ -203,7 +224,15 @@ public class DBManager {
             System.out.println(json.toString());
             
             DBManager manager = new DBManager();
-            manager.insert(json);
+            List<String> jsonStrings = new ArrayList<String>();
+            jsonStrings.add(json.toString());
+            manager.insertDocuments(jsonStrings, new InsertDocumentsCallback(){
+
+				@Override
+				public void onFinish(List<String> failedUrls) {
+					System.out.println("Finished with failed Urls " + failedUrls.size());
+				}
+            });
             
         } catch (URISyntaxException e) {
             System.err.println("URISyntaxException when adding link: " + url);
