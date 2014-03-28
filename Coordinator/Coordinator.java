@@ -103,14 +103,13 @@ public class Coordinator {
     
     //configuration
     static int port = 15001;
-    private static int crawltimeout = 60;
+    private static int crawltimeout = 60 * 60 * 3; // 3 hours
     private static int defaultlimit = 100;
 	private static int OutBufferSize = 32768;
 	/*
 	 * This looks scary, but this basically grabs any connection runs the function process
 	 */
 	public static void main(String[] args) {
-		
 		
 		try{
 			Selector selector = Selector.open();

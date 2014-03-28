@@ -1,6 +1,3 @@
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -209,35 +206,5 @@ public class DBManager {
 	
 	public static interface InsertDocumentsCallback {
 		public void onFinish(List<String> failedUrls);
-	}
-
-	public static void main(String[] args) {
-		Parser p = new Parser();
-        String url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.248.5252";
-        URI uri;
-        try {
-            uri = new URI(url);
-            System.out.println(uri);
-            Crawler c = new Crawler(uri, null);
-            String html = c.getHTML(uri.getHost(), uri.getRawPath() + "?" + uri.getQuery(), 80);
-            JSONObject json = p.getPaperJson(html, uri);
-            System.out.println(json.toString());
-            
-            DBManager manager = new DBManager();
-            List<String> jsonStrings = new ArrayList<String>();
-            jsonStrings.add(json.toString());
-            manager.insertDocuments(jsonStrings, new InsertDocumentsCallback(){
-
-				@Override
-				public void onFinish(List<String> failedUrls) {
-					System.out.println("Finished with failed Urls " + failedUrls.size());
-				}
-            });
-            
-        } catch (URISyntaxException e) {
-            System.err.println("URISyntaxException when adding link: " + url);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 	}
 }
