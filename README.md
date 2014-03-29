@@ -10,6 +10,9 @@ CS3103 Concurrent Web Crawler Project
 2. Crawler
 	- Include `jsoup-<version>.jar`.
 
+## File Organization
+The `Coordinator` and `Crawler` folders should be set up as 2 separate projects.
+
 ### Run Program
 1. Active Mongo DB
 	- Run `mongod` or `mongod --dbpath <path to your database folder>`
