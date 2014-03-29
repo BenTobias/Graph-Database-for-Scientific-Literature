@@ -103,7 +103,7 @@ public class Coordinator {
     
     //configuration
     static int port = 15001;
-    private static int crawltimeout = 60 * 60 * 3; // 3 hours
+    private static int crawltimeout = 60 * 60 * 24; // 24 hours
     private static int defaultlimit = 100;
 	private static int OutBufferSize = 32768;
 	/*

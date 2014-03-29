@@ -27,7 +27,19 @@ The `Coordinator` and `Crawler` folders should be set up as 2 separate projects.
 	- Change values in `CrawlerSimulator.java` if necessary.
 	- Start crawler by running the `CrawlerSimulator` class.
 
-Links will be written to `results.txt`.
+### Run Program on VM
+1. `ssh sadm@group05-i.comp.nus.edu.sg`
+2. `su` to root
+3. Start Mongo DB `bash db.sh`
+4. Start Coordinator 
+	- `cd` into Coordinator folder
+	- `bash compile.sh`
+	- `bash run.sh`
+5. Start CrawlerSimulator
+	- `cd` into Crawler folder
+	- `bash compile.sh`
+	- `bash run.sh`
+
 
 ## Implementation
 Described in `Master.java` class doc.
