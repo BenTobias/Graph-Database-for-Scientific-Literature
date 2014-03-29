@@ -36,3 +36,10 @@ tmp/
 local.properties
 .settings/
 .loadpath
+
+### VM ###
+Coordinator/log/*
+Coordinator/*.txt
+Crawler/log/*
+Crawler/*.txt
+
