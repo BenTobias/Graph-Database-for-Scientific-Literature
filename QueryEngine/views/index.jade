@@ -1,5 +1,12 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+	center
+		h1#title CS3103 Project Academic Paper Query Engine
+		br
+		br
+		form.form-inline(role='form')
+			input#search-box.form-control(type='text')
+			button.btn.btn-warning(type='submit') Search
+		-if(data)
+			p= data

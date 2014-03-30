@@ -3,6 +3,8 @@ body {
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
-a {
-  color: #00B7FF;
+#search-box {
+	width: 500px;
+	margin-right: 5px;
 }
+
