@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
+
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -92,9 +94,18 @@ public class Coordinator {
 
 		@Override
 		public void onFinish(List<String> failedUrls) {
+			DBCollection papers_db = db.GetCollection("PaperNodes");
 			System.out.println("Could not process: ");
 			for(String s: failedUrls)
-				System.out.print(s+",");
+			{
+				System.out.println(s);
+				DBCursor papers = db.GetPaperByUrl(s);
+				assert(papers.count() == 1);
+				DBObject paper = papers.next();
+				paper.put("Crawl_status", "Failed");
+				papers_db.save(paper);
+				
+			}
 			System.out.println("");
 			
 		}
@@ -103,7 +114,7 @@ public class Coordinator {
     
     //configuration
     static int port = 15001;
-    private static int crawltimeout = 60 * 60 * 24; // 24 hours
+    private static int crawltimeout = 60 * 60 * 2; // 2 hours
     private static int defaultlimit = 100;
 	private static int OutBufferSize = 32768;
 	/*
@@ -276,11 +287,32 @@ public class Coordinator {
 	    	cs.output = encoder.encode(CharBuffer.wrap(os));
 	    }else if(msg.get("cmd").toString().equals("PUT_JSONS"))
 	    {
+	    	DBCollection papers_db = db.GetCollection("PaperNodes");
 	    	System.out.println(msg);
 	    	BasicDBList data = ((BasicDBList )msg.get("data"));
 	    	for(int i = 0;i<data.size();i++)
 	    	{
-	    		JSONStrings.add((String)data.get(i));
+	    		String paperJSON = (String)data.get(i);
+	    		JSONStrings.add(paperJSON);
+	    		try{
+	    			JSONObject doc = new JSONObject(paperJSON);
+	    			String url = doc.getString("url");
+	    			DBCursor papers =  db.GetPaperByUrl(url);
+	    			if(papers.count() == 1)
+	    			{
+	    				
+	    				DBObject paper = papers.next();
+	    				//Set status to done.
+	    				paper.put("Crawl_status", "done"); //assumes that it doesn't fail.
+	    				paper.put("Crawl_date", new Date()); //now
+	    				papers_db.save(paper);
+	    			}
+	    			else
+	    				assert(false);
+	    		}catch (Exception e)
+	    		{
+	    			System.out.println("Failed to parse:"+ e.getMessage());
+	    		}
 	    	}
 	    	
 	    	DBMgr.insertDocuments((ArrayList<String>)JSONStrings.clone(), new callback());
