@@ -3,8 +3,13 @@ body {
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
-#search-box {
-	width: 500px;
-	margin-right: 5px;
+.centered {
+	text-align: center;
+	margin-right: auto;
+	margin-left: auto;
 }
 
+.no-padding {
+	padding-left: 2px;
+	padding-right: 2px;
+}

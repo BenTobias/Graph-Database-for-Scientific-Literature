@@ -10,9 +10,10 @@ var path = require('path');
 
 var app = express();
 
+// connect to db
+var global = require('./routes/global');
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost/prototype');
-
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function callback(){
@@ -37,9 +38,7 @@ if ('development' == app.get('env')) {
 }
 
 app.get('/', routes.index);
-app.post('/', function(req, res){
-	res.render('index', {data:{'name':'haha'}});
-});
+app.post('/simpleSearch', routes.simpleSearch);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
