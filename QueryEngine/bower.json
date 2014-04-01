@@ -3,14 +3,11 @@
   "version": "0.0.0",
   "homepage": "https://github.com/BenTobias/CS3103-Project",
   "authors": [
-    "Xiangxin"
+    "Xiangxin <xiangxinsg@gmail.com>"
   ],
-  "description": "Academic Paper Query Engine",
-  "main": "main",
-  "keywords": [
-    "node"
-  ],
-  "license": "None",
+  "description": "query engine",
+  "main": "app.js",
+  "license": "none",
   "private": true,
   "ignore": [
     "**/.*",

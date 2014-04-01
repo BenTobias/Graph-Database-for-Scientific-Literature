@@ -10,6 +10,7 @@ var mongoose = require('mongoose'),
 
 var AuthorSchema = Schema({
 	papers: [{type: Schema.Types.ObjectId, ref:"Paper"}],	
+
 });
 
 var PaperSchema = Schema({
@@ -19,3 +20,7 @@ var PaperSchema = Schema({
 
 var Author = mongoose.model('Author', AuthorSchema);
 var Paper = mongoose.model('Paper', PaperSchema);
+
+
+
+
