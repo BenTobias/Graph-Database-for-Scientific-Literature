@@ -50,6 +50,7 @@ var Paper = mongoose.model('Paper',
 		}), 'paper');
 
 exports.filterPaperBy = function(paper, author, yearFrom, yearTo) {
+	// TODO: Add where statements
 	Paper.find({}, 'title', function(err, papers) {	
 		if(err) 
 			console.log('Error retrieving papers in simpleSearch: ' + err);
@@ -58,12 +59,27 @@ exports.filterPaperBy = function(paper, author, yearFrom, yearTo) {
 	});
 };
 
-exports.findPapersWithSimilarCitation = function(theDoi) {
-	Paper.find({doi:theDoi}, function(err, papers){
+exports.findPapersWithSimilarCitation = function(theDoi, callback) {
+	Paper.find({doi:theDoi}, 'citations')
+		.populate('citations', 'cited_by')
+		.exec(function(err, thisPaper){
 		if(err) 
-			console.log('Error retrieving papers in simpleSearch: ' + err);
-		console.log('papers: ', papers);
-		return papers;
+			console.log('Error retrieving papers with similar citation: ' + err);
+		else {
+			var citations = thisPaper[0]["citations"];
+			// console.log('cititions: ' + citations);
+			var similarPaperIds = [];
+			citations.forEach(function(paper){
+				console.log("paper: " + paper);
+				var cited_by = paper["cited_by"]; // Why are you undefined?!
+				cited_by.forEach(function(c) {
+					if(similarPaperIds.indexOf(c) == -1) {
+						similarPaperIds.push(c);
+					}	
+				});
+			});
+			callback(similarPaperIds);
+		}
 	});
 };
 

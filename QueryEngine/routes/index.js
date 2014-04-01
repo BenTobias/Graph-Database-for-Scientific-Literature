@@ -12,14 +12,17 @@ exports.simpleSearch = function(req, res){
 	var yearFrom = req.body.yearFrom.trim();
 	var yearTo = req.body.yearTo.trim();
 
-	var results = global.filterPaperBy(paper, author, yearFrom, yearTo);
-	res.send({data:results});
+	var results = global.filterPaperBy(paper, author, yearFrom, yearTo, function(results){
+		res.send({data:results});
+	});
 };
 
 exports.similarCitation = function(req, res){
 	var doi = req.body.doi;
-	var results = global.findPapersWithSimilarCitation(doi);
-	res.send(results);
+	global.findPapersWithSimilarCitation(doi, function(results){
+		console.log('similarCitation: ', results);
+		res.send(results);
+	});
 };
 
 
