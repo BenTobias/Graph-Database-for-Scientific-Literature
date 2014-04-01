@@ -13,7 +13,7 @@ var app = express();
 // connect to db
 var global = require('./routes/global');
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/prototype');
+mongoose.connect('mongodb://localhost/cs3103project');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function callback(){
@@ -39,6 +39,7 @@ if ('development' == app.get('env')) {
 
 app.get('/', routes.index);
 app.post('/simpleSearch', routes.simpleSearch);
+app.post('/similarCitationPaper', routes.similarCitation);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
