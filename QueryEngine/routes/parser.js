@@ -2,7 +2,7 @@
  * The namespace for the parser class.
  * @namespace
  */
-var parser = {};
+var Parser = Parser || {};
 
 /**
  * Parses the boolean query string into a mongo query object.
@@ -15,7 +15,7 @@ var parser = {};
  * @return {Object|undefined}: the mongo query object or undefined (if the
  *      string cannot be parsed).
  */
-parser.parseBooleanQuery = function (query, key) {
+Parser.parseBooleanQuery = function (query, key) {
     var queryTokens = query.split(' ');
 
     // TODO: need to handle empty strings from list.
@@ -121,8 +121,8 @@ var addTermsToQueryList = function (term, key, queryList, dbOperator) {
     return queryList;
 };
 
-console.log(parser.parseBooleanQuery('A && B', 'title'));
-console.log(parser.parseBooleanQuery('A && B && C', 'title'));
-console.log(parser.parseBooleanQuery('A && B && C || D || E', 'title'));
-console.log(parser.parseBooleanQuery('A || B', 'title'));
-console.log(parser.parseBooleanQuery('A && B || C && D', 'title'));
+console.log(Parser.parseBooleanQuery('A && B', 'title'));
+console.log(Parser.parseBooleanQuery('A && B && C', 'title'));
+console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
+console.log(Parser.parseBooleanQuery('A || B', 'title'));
+console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
