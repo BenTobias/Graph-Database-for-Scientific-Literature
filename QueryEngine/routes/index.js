@@ -6,13 +6,12 @@ exports.index = function(req, res){
 };
 
 exports.simpleSearch = function(req, res){
-
-	var paper = req.body.paper.trim();
+	var title = req.body.title.trim();
 	var author = req.body.author.trim();
 	var yearFrom = req.body.yearFrom.trim();
 	var yearTo = req.body.yearTo.trim();
 
-	var results = global.filterPaperBy(paper, author, yearFrom, yearTo, function(results){
+	var results = global.filterPaperBy(title, author, yearFrom, yearTo, function(results){
 		res.send({data:results});
 	});
 };
