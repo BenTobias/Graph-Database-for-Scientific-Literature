@@ -16,22 +16,57 @@ var Parser = Parser || {};
  *      string cannot be parsed).
  */
 Parser.parseBooleanQuery = function (query, key) {
-    var queryTokens = query.split(' ');
+    var operators = ['&&', '||'];
 
-    // TODO: need to handle empty strings from list.
+    var isBooleanQuery = ((query.indexOf('&&') != -1) ||
+        (query.indexOf('||') != -1));
 
-    // no boolean query
-    if (queryTokens.length == 1) {
+    if (!isBooleanQuery) {
         return query;
     }
 
-    var operators = ['&&', '||'];
+    var queryTokens = query.split(' ');
+    queryTokens = this.concatWords(queryTokens, operators);
+
+    // TODO: need to handle empty strings from list.
+
 
     operators.forEach(function(operator) {
         queryTokens = this.handleBinaryOperator(operator, key, queryTokens);
     }, this);
 
     return queryTokens[0]
+};
+
+/**
+ * Concats the space-separated terms.
+ *
+ * Example: ['A', 'B', 'C', '&&', 'D'] -> ['A B C', '&&', 'D']
+ *
+ * @param tokens {Array.<string>}: the array of space-separated terms.
+ * @param operator {string}: the operator to handle (eg. '&&').
+ * @return {Array.<string>}: the processed tokens array.
+ * @private
+ */
+Parser.concatWords = function (tokens, operators) {
+    var processedTokens = [];
+    var concatFlag = false;
+
+    for (var i = 0, token; token = tokens[i], i < tokens.length; i++) {
+        if (operators.indexOf(token) != -1) {
+            concatFlag = false;
+        }
+        else if (concatFlag == true) {
+            token = processedTokens.pop() + ' ' + token;
+        }
+        else {
+            concatFlag = true;
+        }
+
+        processedTokens.push(token);
+    }
+
+    return processedTokens;
 };
 
 /**
@@ -53,7 +88,7 @@ Parser.handleBinaryOperator = function (operator, key, queryTokens) {
         if (token == operator) {
             constructFlag = true;
         }
-        else if (constructFlag == true) {
+        else if (constructFlag) {
             newQueryTokens.pop();
             var t1 = newQueryTokens.pop();
             var t2 = token;
@@ -137,7 +172,6 @@ Parser.addTermToQueryList = function (term, key, queryList, dbOperator) {
     else {
         var termObj = this.createTermObject(key, term);
         queryList.push(termObj);
-        // console.log(termObj);
     }
 
     return queryList;
@@ -158,8 +192,9 @@ Parser.createTermObject = function(key, term) {
     return termObj;
 };
 
-console.log(Parser.parseBooleanQuery('A && B', 'title'));
-console.log(Parser.parseBooleanQuery('A && B && C', 'title'));
-console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
-console.log(Parser.parseBooleanQuery('A || B', 'title'));
-console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
+console.log(Parser.parseBooleanQuery('A B C', 'title'));
+console.log(Parser.parseBooleanQuery('A B && C', 'title'));
+// console.log(Parser.parseBooleanQuery('A && B && C', 'title'));
+// console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
+// console.log(Parser.parseBooleanQuery('A || B', 'title'));
+// console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
