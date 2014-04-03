@@ -50,13 +50,27 @@ var Paper = mongoose.model('Paper',
 			citations: [{type: Schema.Types.ObjectId, ref:"Paper"}]
 		}), 'paper');
 
-var createWildcardSearch = function (key, string) {
-	return {key: {'$regex': '.*' + string + '.*', '$options': 'i'}};
-}
+var createWildcardQuery = function (key, string) {
+	var query = {};
+	query[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
+	return query;
+};
+
+var parseQuery = function(string, key) {
+	var parsedQuery = parser.parseBooleanQuery(string, key);
+
+	if ((parsedQuery == undefined) || (typeof(parsedQuery) == 'string')) {
+		// use original string
+		parsedQuery = createWildcardQuery(key, string);
+	}
+
+	return parsedQuery;
+};
 
 exports.filterPaperBy = function(title, author, yearFrom, yearTo) {
 	// TODO: Add where statements
-	Paper.find(createWildcardSearch('title', title), 'title year', function(err, papers) {	
+	var parsedTitle = parseQuery(title, 'title');
+	Paper.find(parsedTitle, 'title', function(err, papers) {	
 		if(err) 
 			console.log('Error retrieving papers in simpleSearch: ' + err);
 		console.log('papers: ', papers);
