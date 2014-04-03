@@ -11,9 +11,16 @@ exports.simpleSearch = function(req, res){
 	var yearFrom = req.body.yearFrom.trim();
 	var yearTo = req.body.yearTo.trim();
 
-	var results = global.filterPaperBy(title, author, yearFrom, yearTo, function(results){
-		res.send({data:results});
-	});
+	var results = global.filterPaperBy(title, author, yearFrom, yearTo,
+		handleSearchCallback(res));
+};
+
+var handleSearchCallback = function(res) {
+	var helperFunction = function(results) {
+		res.render('index', {data:results});
+	};
+
+	return helperFunction;
 };
 
 exports.similarCitation = function(req, res){

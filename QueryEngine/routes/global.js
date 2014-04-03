@@ -67,14 +67,14 @@ var parseQuery = function(string, key) {
 	return parsedQuery;
 };
 
-exports.filterPaperBy = function(title, author, yearFrom, yearTo) {
+exports.filterPaperBy = function(title, author, yearFrom, yearTo, callback) {
 	// TODO: Add where statements
 	var parsedTitle = parseQuery(title, 'title');
 	Paper.find(parsedTitle, 'title', function(err, papers) {	
 		if(err) 
-			console.log('Error retrieving papers in simpleSearch: ' + err);
+			console.error('Unable to retrieve results from search: ' + err);
 		console.log('papers: ', papers);
-		return papers;
+		callback(papers);
 	});
 };
 
