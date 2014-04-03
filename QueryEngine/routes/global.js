@@ -1,5 +1,6 @@
 
 var mongoose = require('mongoose');
+var parser = require('./parser');
 
 var Schema = mongoose.Schema;
 	
