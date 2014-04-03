@@ -1,15 +1,9 @@
 /**
- * The namespace for the parser class.
- * @namespace
- */
-var Parser = Parser || {};
-
-/**
  * The list of operators that the parser handles.
  * @type {Array.<string>}
  * @private
  */
-Parser.operators = ['&&', '||'];
+var OPERATORS = ['&&', '||'];
 
 /**
  * Parses the boolean query string into a mongo query object.
@@ -22,7 +16,7 @@ Parser.operators = ['&&', '||'];
  * @return {Object|undefined}: the mongo query object or undefined (if the
  *      string cannot be parsed).
  */
-Parser.parseBooleanQuery = function (query, key) {
+exports.parseBooleanQuery = function (query, key) {
     var isBooleanQuery = ((query.indexOf('&&') != -1) ||
         (query.indexOf('||') != -1));
 
@@ -31,12 +25,12 @@ Parser.parseBooleanQuery = function (query, key) {
     }
 
     var queryTokens = query.split(' ');
-    queryTokens = this.concatWordsFilterEmptyStrings(queryTokens);
+    queryTokens = concatWordsFilterEmptyStrings(queryTokens);
 
 
-    this.operators.forEach(function(operator) {
-        queryTokens = this.handleBinaryOperator(operator, key, queryTokens);
-    }, this);
+    OPERATORS.forEach(function(operator) {
+        queryTokens = handleBinaryOperator(operator, key, queryTokens);
+    });
 
     if (queryTokens == undefined) {
         return;
@@ -55,7 +49,7 @@ Parser.parseBooleanQuery = function (query, key) {
  * @return {Array.<string>}: the processed tokens array.
  * @private
  */
-Parser.concatWordsFilterEmptyStrings = function (tokens) {
+var concatWordsFilterEmptyStrings = function (tokens) {
     var processedTokens = [];
     var concatFlag = false;
 
@@ -64,7 +58,7 @@ Parser.concatWordsFilterEmptyStrings = function (tokens) {
             continue;
         }
 
-        if (this.operators.indexOf(token) != -1) {
+        if (OPERATORS.indexOf(token) != -1) {
             concatFlag = false;
         }
         else if (concatFlag == true) {
@@ -90,7 +84,7 @@ Parser.concatWordsFilterEmptyStrings = function (tokens) {
  * @return {Array.<string|Object>}: the parsed list of tokens.
  * @private
  */
-Parser.handleBinaryOperator = function (operator, key, queryTokens) {
+var handleBinaryOperator = function (operator, key, queryTokens) {
     if (queryTokens == undefined) {
         return;
     }
@@ -100,7 +94,7 @@ Parser.handleBinaryOperator = function (operator, key, queryTokens) {
 
     for (var i = 0; i < queryTokens.length; i++) {
         var token = queryTokens[i];
-        if ((this.operators.indexOf(token) != -1) && constructFlag){
+        if ((OPERATORS.indexOf(token) != -1) && constructFlag){
             console.error('Operators cannot be adjacent to each other.');
             return;
         }
@@ -118,7 +112,7 @@ Parser.handleBinaryOperator = function (operator, key, queryTokens) {
                 return;
             }
 
-            var token = this.createDBQueryObject(t1, t2, key, operator);
+            var token = createDBQueryObject(t1, t2, key, operator);
             constructFlag = false;
         }
 
@@ -150,7 +144,7 @@ Parser.handleBinaryOperator = function (operator, key, queryTokens) {
  * @return {Array.<string|Object>}: the parsed list of tokens.
  * @private
  */
-Parser.createDBQueryObject = function (t1, t2, key, operator) {
+var createDBQueryObject = function (t1, t2, key, operator) {
     var dbOperator = '';
     if (operator == '&&') {
         dbOperator = '$and';
@@ -164,8 +158,8 @@ Parser.createDBQueryObject = function (t1, t2, key, operator) {
     }
 
     var queryList = [];
-    queryList = this.addTermToQueryList(t1, key, queryList, dbOperator);
-    queryList = this.addTermToQueryList(t2, key, queryList, dbOperator);
+    queryList = addTermToQueryList(t1, key, queryList, dbOperator);
+    queryList = addTermToQueryList(t2, key, queryList, dbOperator);
 
     var queryObj = {};
     queryObj[dbOperator] = queryList;
@@ -190,7 +184,7 @@ Parser.createDBQueryObject = function (t1, t2, key, operator) {
  * @return {Array.<Object>}: the updated list of term objects.
  * @private
  */
-Parser.addTermToQueryList = function (term, key, queryList, dbOperator) {
+var addTermToQueryList = function (term, key, queryList, dbOperator) {
     // Flattens the objects by combining all the similar operators together.
     if (typeof(term) == 'object' && term[dbOperator]) {
         queryList = queryList.concat(term[dbOperator]);
@@ -199,7 +193,7 @@ Parser.addTermToQueryList = function (term, key, queryList, dbOperator) {
         queryList.push(term);
     }
     else {
-        var termObj = this.createTermObject(key, term);
+        var termObj = createTermObject(key, term);
         queryList.push(termObj);
     }
 
@@ -215,18 +209,18 @@ Parser.addTermToQueryList = function (term, key, queryList, dbOperator) {
  * @return {Object}: the term object.
  * @private
  */
-Parser.createTermObject = function(key, term) {
+var createTermObject = function(key, term) {
     var termObj = {};
     termObj[key] = {'$regex': '.*' + term + '.*', '$options': 'i'};
     return termObj;
 };
 
-console.log(Parser.parseBooleanQuery('A B C', 'title'));
-console.log(Parser.parseBooleanQuery('A B && C', 'title'));
-console.log(Parser.parseBooleanQuery('A && B &&     C   ', 'title'));
-console.log(Parser.parseBooleanQuery('|| A B && C', 'title'));
-console.log(Parser.parseBooleanQuery('A B &&', 'title'));
-console.log(Parser.parseBooleanQuery('A B && || C', 'title'));
-console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
-console.log(Parser.parseBooleanQuery('A || B', 'title'));
-console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
+// console.log(exports.parseBooleanQuery('A B C', 'title'));
+// console.log(exports.parseBooleanQuery('A B && C', 'title'));
+// console.log(exports.parseBooleanQuery('A && B &&     C   ', 'title'));
+// console.log(exports.parseBooleanQuery('|| A B && C', 'title'));
+// console.log(exports.parseBooleanQuery('A B &&', 'title'));
+// console.log(exports.parseBooleanQuery('A B && || C', 'title'));
+// console.log(exports.parseBooleanQuery('A && B && C || D || E', 'title'));
+// console.log(exports.parseBooleanQuery('A || B', 'title'));
+// console.log(exports.parseBooleanQuery('A && B || C && D', 'title'));
