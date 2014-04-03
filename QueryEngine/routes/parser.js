@@ -5,6 +5,13 @@
 var Parser = Parser || {};
 
 /**
+ * The list of operators that the parser handles.
+ * @type {Array.<string>}
+ * @private
+ */
+Parser.operators = ['&&', '||'];
+
+/**
  * Parses the boolean query string into a mongo query object.
  *
  * The result can be run directly as a mongo query. If the query string
@@ -16,8 +23,6 @@ var Parser = Parser || {};
  *      string cannot be parsed).
  */
 Parser.parseBooleanQuery = function (query, key) {
-    var operators = ['&&', '||'];
-
     var isBooleanQuery = ((query.indexOf('&&') != -1) ||
         (query.indexOf('||') != -1));
 
@@ -26,13 +31,16 @@ Parser.parseBooleanQuery = function (query, key) {
     }
 
     var queryTokens = query.split(' ');
-    queryTokens = this.concatWordsFilterEmptyStrings(queryTokens, operators);
-    // TODO: need to handle empty strings from list.
+    queryTokens = this.concatWordsFilterEmptyStrings(queryTokens);
 
 
-    operators.forEach(function(operator) {
+    this.operators.forEach(function(operator) {
         queryTokens = this.handleBinaryOperator(operator, key, queryTokens);
     }, this);
+
+    if (queryTokens == undefined) {
+        return;
+    }
 
     return queryTokens[0]
 };
@@ -44,11 +52,10 @@ Parser.parseBooleanQuery = function (query, key) {
  * Example: ['A', '', '', '&&', 'B'] -> ['A', '&&', 'B']
  *
  * @param tokens {Array.<string>}: the array of space-separated terms.
- * @param operator {string}: the operator to handle (eg. '&&').
  * @return {Array.<string>}: the processed tokens array.
  * @private
  */
-Parser.concatWordsFilterEmptyStrings = function (tokens, operators) {
+Parser.concatWordsFilterEmptyStrings = function (tokens) {
     var processedTokens = [];
     var concatFlag = false;
 
@@ -57,7 +64,7 @@ Parser.concatWordsFilterEmptyStrings = function (tokens, operators) {
             continue;
         }
 
-        if (operators.indexOf(token) != -1) {
+        if (this.operators.indexOf(token) != -1) {
             concatFlag = false;
         }
         else if (concatFlag == true) {
@@ -84,11 +91,20 @@ Parser.concatWordsFilterEmptyStrings = function (tokens, operators) {
  * @private
  */
 Parser.handleBinaryOperator = function (operator, key, queryTokens) {
+    if (queryTokens == undefined) {
+        return;
+    }
+
     var constructFlag = false;
     var newQueryTokens = [];
 
     for (var i = 0; i < queryTokens.length; i++) {
         var token = queryTokens[i];
+        if ((this.operators.indexOf(token) != -1) && constructFlag){
+            console.error('Operators cannot be adjacent to each other.');
+            return;
+        }
+
         if (token == operator) {
             constructFlag = true;
         }
@@ -97,7 +113,10 @@ Parser.handleBinaryOperator = function (operator, key, queryTokens) {
             var t1 = newQueryTokens.pop();
             var t2 = token;
 
-            // TODO: Check if t1 is undefined.
+            if (t1 == undefined) {
+                console.log('Binary operator needs 2 elements.');
+                return;
+            }
 
             var token = this.createDBQueryObject(t1, t2, key, operator);
             constructFlag = false;
@@ -105,6 +124,11 @@ Parser.handleBinaryOperator = function (operator, key, queryTokens) {
 
         newQueryTokens.push(token);
     };
+
+    if (constructFlag) {
+        console.error('Query string cannot end with a binary operator.');
+        return;
+    }
 
     return newQueryTokens
 };
@@ -135,7 +159,8 @@ Parser.createDBQueryObject = function (t1, t2, key, operator) {
         dbOperator = '$or';
     }
     else {
-        // TODO: Throw/raise some error.
+        console.error('No such operator: ' + operator);
+        return;
     }
 
     var queryList = [];
@@ -199,6 +224,9 @@ Parser.createTermObject = function(key, term) {
 console.log(Parser.parseBooleanQuery('A B C', 'title'));
 console.log(Parser.parseBooleanQuery('A B && C', 'title'));
 console.log(Parser.parseBooleanQuery('A && B &&     C   ', 'title'));
-// console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
-// console.log(Parser.parseBooleanQuery('A || B', 'title'));
-// console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
+console.log(Parser.parseBooleanQuery('|| A B && C', 'title'));
+console.log(Parser.parseBooleanQuery('A B &&', 'title'));
+console.log(Parser.parseBooleanQuery('A B && || C', 'title'));
+console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
+console.log(Parser.parseBooleanQuery('A || B', 'title'));
+console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
