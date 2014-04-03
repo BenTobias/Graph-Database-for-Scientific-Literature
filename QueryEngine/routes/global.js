@@ -49,9 +49,13 @@ var Paper = mongoose.model('Paper',
 			citations: [{type: Schema.Types.ObjectId, ref:"Paper"}]
 		}), 'paper');
 
-exports.filterPaperBy = function(paper, author, yearFrom, yearTo) {
+var createWildcardSearch = function (key, string) {
+	return {key: {'$regex': '.*' + string + '.*', '$options': 'i'}};
+}
+
+exports.filterPaperBy = function(title, author, yearFrom, yearTo) {
 	// TODO: Add where statements
-	Paper.find({}, 'title', function(err, papers) {	
+	Paper.find(createWildcardSearch('title', title), 'title year', function(err, papers) {	
 		if(err) 
 			console.log('Error retrieving papers in simpleSearch: ' + err);
 		console.log('papers: ', papers);
