@@ -135,12 +135,27 @@ Parser.addTermToQueryList = function (term, key, queryList, dbOperator) {
         queryList.push(term);
     }
     else {
-        var termObj = {};
-        termObj[key] = term;
+        var termObj = this.createTermObject(key, term);
         queryList.push(termObj);
+        // console.log(termObj);
     }
 
     return queryList;
+};
+
+/**
+ * Creates the term object. This includes the wildcard queries and other
+ * query options.
+ *
+ * @param key {string}: the field that the query belongs to.
+ * @param term {string}: the term to query.
+ * @return {Object}: the term object.
+ * @private
+ */
+Parser.createTermObject = function(key, term) {
+    var termObj = {};
+    termObj[key] = {'$regex': '.*' + term + '.*', '$options': 'i'};
+    return termObj;
 };
 
 console.log(Parser.parseBooleanQuery('A && B', 'title'));
