@@ -95,8 +95,8 @@ var createDBQueryObject = function (t1, t2, key, operator) {
     }
 
     var queryList = [];
-    addTermsToQueryList(t1, key, queryList);
-    addTermsToQueryList(t2, key, queryList);
+    queryList = addTermsToQueryList(t1, key, queryList, dbOperator);
+    queryList = addTermsToQueryList(t2, key, queryList, dbOperator);
 
     var queryObj = {};
     queryObj[dbOperator] = queryList;
@@ -104,8 +104,12 @@ var createDBQueryObject = function (t1, t2, key, operator) {
     return queryObj;
 };
 
-var addTermsToQueryList = function (term, key, queryList) {
-    if (typeof(term) == 'object') {
+var addTermsToQueryList = function (term, key, queryList, dbOperator) {
+    // Flattens the objects by combining all the similar operators together.
+    if (typeof(term) == 'object' && term[dbOperator]) {
+        queryList = queryList.concat(term[dbOperator]);
+    }
+    else if (typeof(term) == 'object') {
         queryList.push(term);
     }
     else {
@@ -113,9 +117,12 @@ var addTermsToQueryList = function (term, key, queryList) {
         termObj[key] = term;
         queryList.push(termObj);
     }
+
+    return queryList;
 };
 
 console.log(parser.parseBooleanQuery('A && B', 'title'));
 console.log(parser.parseBooleanQuery('A && B && C', 'title'));
+console.log(parser.parseBooleanQuery('A && B && C || D || E', 'title'));
 console.log(parser.parseBooleanQuery('A || B', 'title'));
 console.log(parser.parseBooleanQuery('A && B || C && D', 'title'));
