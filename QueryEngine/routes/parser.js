@@ -28,8 +28,8 @@ Parser.parseBooleanQuery = function (query, key) {
     var operators = ['&&', '||'];
 
     operators.forEach(function(operator) {
-        queryTokens = handleBinaryOperator(operator, key, queryTokens);
-    });
+        queryTokens = this.handleBinaryOperator(operator, key, queryTokens);
+    }, this);
 
     return queryTokens[0]
 };
@@ -44,7 +44,7 @@ Parser.parseBooleanQuery = function (query, key) {
  * @return {Array.<string|Object>}: the parsed list of tokens.
  * @private
  */
-var handleBinaryOperator = function (operator, key, queryTokens) {
+Parser.handleBinaryOperator = function (operator, key, queryTokens) {
     var constructFlag = false;
     var newQueryTokens = [];
 
@@ -60,7 +60,7 @@ var handleBinaryOperator = function (operator, key, queryTokens) {
 
             // TODO: Check if t1 is undefined.
 
-            var token = createDBQueryObject(t1, t2, key, operator);
+            var token = this.createDBQueryObject(t1, t2, key, operator);
             constructFlag = false;
         }
 
@@ -76,13 +76,18 @@ var handleBinaryOperator = function (operator, key, queryTokens) {
  * The query object should be in this format:
  *  eg. {'$and': [{'title': 'hi'}, {'title': 'bye'}]}
  *
- * @param t1 {}
+ * @param t1 {string|Object}: the term to include in the query object.
+ *      This term is either a token string or a previously created query
+ *      object.
+ * @param t2 {string|Object}: the term to include in the query object.
+ *      This term is either a token string or a previously created query
+ *      object.
  * @param key {string}: the field that the query belongs to.
  * @param operator {string}: the operator to handle (eg. '&&').
  * @return {Array.<string|Object>}: the parsed list of tokens.
  * @private
  */
-var createDBQueryObject = function (t1, t2, key, operator) {
+Parser.createDBQueryObject = function (t1, t2, key, operator) {
     var dbOperator = '';
     if (operator == '&&') {
         dbOperator = '$and';
@@ -95,8 +100,8 @@ var createDBQueryObject = function (t1, t2, key, operator) {
     }
 
     var queryList = [];
-    queryList = addTermsToQueryList(t1, key, queryList, dbOperator);
-    queryList = addTermsToQueryList(t2, key, queryList, dbOperator);
+    queryList = this.addTermToQueryList(t1, key, queryList, dbOperator);
+    queryList = this.addTermToQueryList(t2, key, queryList, dbOperator);
 
     var queryObj = {};
     queryObj[dbOperator] = queryList;
@@ -104,7 +109,24 @@ var createDBQueryObject = function (t1, t2, key, operator) {
     return queryObj;
 };
 
-var addTermsToQueryList = function (term, key, queryList, dbOperator) {
+/**
+ * Adds the term to the query object. If the operator of the term is the same
+ * as the current operator, concat all arguments with the current query list.
+ * 
+ * If the term is a string, place it in a term object with its associated key
+ * and options.
+ *
+ * @param term {string|Object}: the term to include in the query object.
+ *      This term is either a token string or a previously created query
+ *      object.
+ * @param key {string}: the field that the query belongs to.
+ * @param queryList {Array.<Object>}: the list of term objects for the query
+ *      object.
+ * @param dbOperator {string}: the operator to compare with (eg. '$and').
+ * @return {Array.<Object>}: the updated list of term objects.
+ * @private
+ */
+Parser.addTermToQueryList = function (term, key, queryList, dbOperator) {
     // Flattens the objects by combining all the similar operators together.
     if (typeof(term) == 'object' && term[dbOperator]) {
         queryList = queryList.concat(term[dbOperator]);
