@@ -26,8 +26,7 @@ Parser.parseBooleanQuery = function (query, key) {
     }
 
     var queryTokens = query.split(' ');
-    queryTokens = this.concatWords(queryTokens, operators);
-
+    queryTokens = this.concatWordsFilterEmptyStrings(queryTokens, operators);
     // TODO: need to handle empty strings from list.
 
 
@@ -39,20 +38,25 @@ Parser.parseBooleanQuery = function (query, key) {
 };
 
 /**
- * Concats the space-separated terms.
+ * Concats the space-separated terms and removes empty strings.
  *
  * Example: ['A', 'B', 'C', '&&', 'D'] -> ['A B C', '&&', 'D']
+ * Example: ['A', '', '', '&&', 'B'] -> ['A', '&&', 'B']
  *
  * @param tokens {Array.<string>}: the array of space-separated terms.
  * @param operator {string}: the operator to handle (eg. '&&').
  * @return {Array.<string>}: the processed tokens array.
  * @private
  */
-Parser.concatWords = function (tokens, operators) {
+Parser.concatWordsFilterEmptyStrings = function (tokens, operators) {
     var processedTokens = [];
     var concatFlag = false;
 
     for (var i = 0, token; token = tokens[i], i < tokens.length; i++) {
+        if (token == '') {
+            continue;
+        }
+
         if (operators.indexOf(token) != -1) {
             concatFlag = false;
         }
@@ -194,7 +198,7 @@ Parser.createTermObject = function(key, term) {
 
 console.log(Parser.parseBooleanQuery('A B C', 'title'));
 console.log(Parser.parseBooleanQuery('A B && C', 'title'));
-// console.log(Parser.parseBooleanQuery('A && B && C', 'title'));
+console.log(Parser.parseBooleanQuery('A && B &&     C   ', 'title'));
 // console.log(Parser.parseBooleanQuery('A && B && C || D || E', 'title'));
 // console.log(Parser.parseBooleanQuery('A || B', 'title'));
 // console.log(Parser.parseBooleanQuery('A && B || C && D', 'title'));
