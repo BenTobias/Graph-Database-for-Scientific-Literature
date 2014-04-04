@@ -1,3 +1,5 @@
+var mongoose = require('mongoose');
+
 /**
  * The list of operators that the parser handles.
  * @type {Array.<string>}
@@ -26,7 +28,6 @@ exports.parseBooleanQuery = function (query, key) {
 
     var queryTokens = query.split(' ');
     queryTokens = concatWordsFilterEmptyStrings(queryTokens);
-
 
     OPERATORS.forEach(function(operator) {
         queryTokens = handleBinaryOperator(operator, key, queryTokens);
@@ -58,6 +59,31 @@ exports.getTokensList = function (query) {
 
     return queryTokens;
 };
+
+/**
+ * Parses the boolean query tokens list into a mongo query object.
+ *
+ * @param tokens {string}: the tokenized list of the query string to parse.
+ * @return {Object|undefined}: the mongo query object or undefined (if the
+ *      string cannot be parsed).
+ */
+exports.parseBooleanQueryFromTokens = function (tokens, key) {
+    // Not a boolean query
+    if (tokens.length < 3) {
+        return createAuthorTermObject(key, tokens[0]);
+    }
+
+    OPERATORS.forEach(function(operator) {
+        tokens = handleBinaryOperator(operator, key, tokens);
+    });
+
+    if (tokens == undefined) {
+        return;
+    }
+
+    return tokens[0]
+};
+
 
 /**
  * Concats the space-separated terms and removes empty strings.
@@ -205,8 +231,13 @@ var createDBQueryObject = function (t1, t2, key, operator) {
  * @private
  */
 var addTermToQueryList = function (term, key, queryList, dbOperator) {
+    // Checks if the terms are objectids
+    if ((key == 'authors') && ((term['$and'] == undefined) && 
+        (term['$or'] == undefined))) {
+        queryList.push(createAuthorTermObject(key, term));
+    }
     // Flattens the objects by combining all the similar operators together.
-    if (typeof(term) == 'object' && term[dbOperator]) {
+    else if (typeof(term) == 'object' && term[dbOperator]) {
         queryList = queryList.concat(term[dbOperator]);
     }
     else if (typeof(term) == 'object') {
@@ -232,6 +263,20 @@ var addTermToQueryList = function (term, key, queryList, dbOperator) {
 var createTermObject = function(key, term) {
     var termObj = {};
     termObj[key] = {'$regex': '.*' + term + '.*', '$options': 'i'};
+    return termObj;
+};
+
+/**
+ * Creates the author term object.
+ *
+ * @param key {string}: the field that the query belongs to.
+ * @param term {string}: the term to query.
+ * @return {Object}: the term object.
+ * @private
+ */
+var createAuthorTermObject = function(key, term) {
+    var termObj = {};
+    termObj[key] = term;
     return termObj;
 };
 
