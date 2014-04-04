@@ -1,5 +1,7 @@
 
 var mongoose = require('mongoose');
+var async = require('async');
+var ObjectId = mongoose.Types.ObjectId;
 var parser = require('./parser');
 
 var Schema = mongoose.Schema;
@@ -50,6 +52,8 @@ var Paper = mongoose.model('Paper',
 			citations: [{type: Schema.Types.ObjectId, ref:"Paper"}]
 		}), 'paper');
 
+var authorToObjectidMap = {};
+
 var createWildcardQuery = function (key, string) {
 	var query = {};
 	query[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
@@ -67,15 +71,75 @@ var parseQuery = function(string, key) {
 	return parsedQuery;
 };
 
-exports.filterPaperBy = function(title, author, yearFrom, yearTo, callback) {
-	// TODO: Add where statements
-	var parsedTitle = parseQuery(title, 'title');
-	Paper.find(parsedTitle, 'title', function(err, papers) {	
+var parseAuthorQuery = function(query) {
+	var tokens = parser.getTokensList(query);
+	var processedTokens = [];
+
+	async.map(tokens,
+		function (token, callback) {
+			if (isOperator(token)) {
+				return callback(null, token);
+			}
+
+			getAuthorOidFromDB('bhojan', function(err, res) {
+				return callback(err, res);
+			});
+		},
+		function (err, res) {
+			console.log(res);
+		}
+	);
+};
+
+/**
+ * Checks if the string is an operator.
+ *
+ * @param string {string}: .
+ * @return {boolean}: true if the string is an operator, false otherwise.
+ * @private
+ */
+var isOperator = function (string) {
+	return ['&&', '||'].indexOf(string) != -1;
+};
+
+/**
+ * Gets the list of author ObjectIds from the database. The query is a
+ * wildcard query based on the author string. This means that more than
+ * 1 author could be return if the string exists in the database.
+ *
+ * @param author {string}: the author name string to query.
+ * @param callback {Function}: the callback function to call when the query
+ * 		is completed.
+ * @private
+ */
+var getAuthorOidFromDB = function (author, callback) {
+	var parsedAuthor = createWildcardQuery('name', author);
+
+	Author.find(parsedAuthor, '_id', function(err, authorid) {	
 		if(err) 
 			console.error('Unable to retrieve results from search: ' + err);
-		console.log('papers: ', papers);
-		callback(papers);
+			return callback(err, null);
+		console.log('author: ', authorid);
+		// callback(authorid);
+		return callback(null, authorid);
 	});
+};
+
+
+//////////////////////
+//    Public API    //
+/////////////////////
+
+exports.filterPaperBy = function(title, author, yearFrom, yearTo, callback) {
+	// TODO: Add where statements
+	// var parsedTitle = parseQuery(title, 'title');
+	var parsedAuthor = parseAuthorQuery(author);
+	// Paper.find(parsedTitle, 'title', function(err, papers) {	
+	// 	if(err) 
+	// 		console.error('Unable to retrieve results from search: ' + err);
+	// 	console.log('papers: ', papers);
+	// 	callback(papers);
+	// });
 };
 
 exports.findPapersWithSimilarCitation = function(theDoi, callback) {
