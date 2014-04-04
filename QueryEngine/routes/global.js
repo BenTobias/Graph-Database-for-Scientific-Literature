@@ -54,39 +54,56 @@ var Paper = mongoose.model('Paper',
 
 var authorToObjectidMap = {};
 
-var createWildcardQuery = function (key, string) {
-	var query = {};
-	query[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
-	return query;
+var createWildcardQuery = function (key, string, queryObj) {
+	queryObj[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
+	return queryObj;
 };
 
-var parseQuery = function(string, key) {
+var parseQuery = function(string, key, queryObj) {
 	var parsedQuery = parser.parseBooleanQuery(string, key);
 
 	if ((parsedQuery == undefined) || (typeof(parsedQuery) == 'string')) {
 		// use original string
-		parsedQuery = createWildcardQuery(key, string);
+		parsedQuery = createWildcardQuery(key, string, queryObj);
 	}
 
 	return parsedQuery;
 };
 
-var parseAuthorQuery = function(query) {
+var parseAuthorQuery = function(query, callback) {
 	var tokens = parser.getTokensList(query);
 	var processedTokens = [];
 
 	async.map(tokens,
 		function (token, callback) {
 			if (isOperator(token)) {
-				return callback(null, token);
+				return callback(null, [token]);
 			}
 
-			getAuthorOidFromDB('bhojan', function(err, res) {
+			getAuthorOidFromDB(token, function(err, res) {
+				if (res.length == 0) {
+					res = [''];
+				}
+				else {
+					var tempRes = [];
+					for (var i = 0; i < res.length; i++) {
+						tempRes.push(res[i]);
+						tempRes.push('||');
+					}
+
+					tempRes.pop();
+
+					res = tempRes;
+				}
 				return callback(err, res);
 			});
 		},
 		function (err, res) {
-			console.log(res);
+			var flattened = res.reduce(function (a, b) {
+				return a.concat(b);
+			}, []);
+			parsedQuery = parser.parseBooleanQueryFromTokens(flattened, 'authors');
+			callback(parsedQuery);
 		}
 	);
 };
@@ -113,16 +130,47 @@ var isOperator = function (string) {
  * @private
  */
 var getAuthorOidFromDB = function (author, callback) {
-	var parsedAuthor = createWildcardQuery('name', author);
+	var parsedAuthor = createWildcardQuery('name', author, {});
 
-	Author.find(parsedAuthor, '_id', function(err, authorid) {	
-		if(err) 
+	Author.find(parsedAuthor, '_id', function(err, authorIdsList) {	
+		if(err) {
 			console.error('Unable to retrieve results from search: ' + err);
-			return callback(err, null);
-		console.log('author: ', authorid);
-		// callback(authorid);
-		return callback(null, authorid);
+			return callback(err, authorIdsList);
+		}
+		console.log('author: ', authorIdsList);
+
+		return callback(null,
+			authorIdsList.map(
+				function (idObj) {
+					return idObj['_id'];
+				})
+			);
 	});
+};
+
+var executeSearchQuery = function (title, yearFrom, yearTo, callback) {
+	var parsedTitle = parseQuery(title, 'title');
+	Paper.find(parsedTitle, 'title', function(err, papers) {
+		if(err) {
+			console.error('Unable to retrieve results from search: ' + err);
+		}
+		callback(papers);
+	});
+};
+
+var executeSearchQueryWithAuthorCallback = function (title, yearFrom, yearTo,
+	callback) {
+	return function (parsedAuthor) {
+		var parsedQuery = parsedAuthor;
+		if (title != '') {
+			var parsedQuery = parseQuery(title, 'title', parsedAuthor);
+		}
+		Paper.find(parsedQuery, 'title', function(err, papers) {
+			if(err) 
+				console.error('Unable to retrieve results from search: ' + err);
+			callback(papers);
+		});
+	};
 };
 
 
@@ -132,14 +180,14 @@ var getAuthorOidFromDB = function (author, callback) {
 
 exports.filterPaperBy = function(title, author, yearFrom, yearTo, callback) {
 	// TODO: Add where statements
-	// var parsedTitle = parseQuery(title, 'title');
-	var parsedAuthor = parseAuthorQuery(author);
-	// Paper.find(parsedTitle, 'title', function(err, papers) {	
-	// 	if(err) 
-	// 		console.error('Unable to retrieve results from search: ' + err);
-	// 	console.log('papers: ', papers);
-	// 	callback(papers);
-	// });
+
+	if (author == '') {
+		executeSearchQuery(title, yearFrom, yearTo, callback);
+	}
+	else {
+		parseAuthorQuery(author, executeSearchQueryWithAuthorCallback(title,
+			yearFrom, yearTo, callback));
+	}
 };
 
 exports.findPapersWithSimilarCitation = function(theDoi, callback) {
