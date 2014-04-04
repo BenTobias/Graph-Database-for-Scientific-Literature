@@ -10,6 +10,7 @@
     "jade": "*",
     "mongoose": "latest",
     "neo4j": "latest",
-    "mongraph": "latest"
+    "mongraph": "latest",
+    "async": "latest"
   }
 }
