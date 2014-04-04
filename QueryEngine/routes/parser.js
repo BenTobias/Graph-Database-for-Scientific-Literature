@@ -40,6 +40,26 @@ exports.parseBooleanQuery = function (query, key) {
 };
 
 /**
+ * Gets the trimed tokens list that combines adjacent words.
+ *
+ * @param query {string}: the query string to tokenize.
+ * @return {Array.<string>}: the tokenized list of the query string.
+ */
+exports.getTokensList = function (query) {
+    var isBooleanQuery = ((query.indexOf('&&') != -1) ||
+        (query.indexOf('||') != -1));
+
+    if (!isBooleanQuery) {
+        return [query];
+    }
+
+    var queryTokens = query.split(' ');
+    queryTokens = concatWordsFilterEmptyStrings(queryTokens);
+
+    return queryTokens;
+};
+
+/**
  * Concats the space-separated terms and removes empty strings.
  *
  * Example: ['A', 'B', 'C', '&&', 'D'] -> ['A B C', '&&', 'D']
