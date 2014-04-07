@@ -9,7 +9,7 @@ exports.simpleSearch = function(req, res){
 	var title = req.body.title.trim();
 	var author = req.body.author.trim();
 	global.filterPaperByTitleAndAuthor(title, author, function(result){
-		res.send(result);
+		res.render('result', {'data': result});
 	});
 };
 

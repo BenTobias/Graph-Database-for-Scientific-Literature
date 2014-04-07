@@ -1,0 +1,26 @@
+extends layout
+
+block script
+	script(src='/javascripts/result.js')
+
+
+block content
+
+	br
+	br
+	-if(data)
+		-each paper in data
+			div.row
+				div.span4.collapse-group
+					a.title(href='#')
+						h4= paper.title
+					-each author in paper.authors
+						p= author.name
+					div.collapse
+						p= paper.year
+						p= paper.doi
+						a(href=paper.url)
+							paper.url
+						p= paper.abstract
+	-else
+		h4= 'No results found :-('
