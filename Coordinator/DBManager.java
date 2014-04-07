@@ -114,7 +114,7 @@ public class DBManager {
 				authorEntries.add(authorEntry);
 			}
 			
-			// System.out.println("AuthorIds: " + authorIds.toString());
+			// System.out.println("authorEntries: " + authorEntries.toString());
 			
 			// Get citation paper IDs.
 			List<ObjectId> citationIds = new ArrayList<ObjectId>();
@@ -168,11 +168,36 @@ public class DBManager {
 				addPaperToPaper(paperId, citationIds.get(i));
 			}
 			
+			// Update add coauthor field to every author
+			for(int i = 0; i < authorEntries.size(); i++) {
+				addCoauthorToAuthor(authorEntries, (ObjectId)authorEntries.get(i).get("id"));
+			}
+			
 			return paperId;
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	private void addCoauthorToAuthor(List<BasicDBObject> authorEntries, ObjectId authorId) {
+		BasicDBObject searchQuery = new BasicDBObject();
+		searchQuery.put("_id", authorId);
+		DBObject author = authorCollection.findOne(searchQuery);
+		
+		BasicDBList coauthorIds = (BasicDBList) author.get("coauthors");
+		if(coauthorIds == null) coauthorIds = new BasicDBList();
+		for(int i = 0; i < authorEntries.size(); i++) {
+			ObjectId coauthorId = (ObjectId) authorEntries.get(i).get("id");
+			if(!authorId.equals(coauthorId) && !coauthorIds.contains(coauthorId)) {
+				coauthorIds.add(coauthorId);
+			}
+		}
+			
+		BasicDBObject newAuthor = new BasicDBObject();
+		newAuthor.append("$set", new BasicDBObject().append("coauthors", coauthorIds));
+		searchQuery = new BasicDBObject().append("_id", authorId);
+		authorCollection.update(searchQuery, newAuthor);
 	}
 
 	/**
