@@ -33,12 +33,12 @@ The `Coordinator` and `Crawler` folders should be set up as 2 separate projects.
 3. Start Mongo DB `bash db.sh`
 4. Start Coordinator 
 	- `cd` into Coordinator folder
-	- `bash compile.sh`
-	- `bash run.sh`
+	- `javac -Xlint -cp ".:../*" Coordinator.java`
+	- `nohup java -cp ".:../*" Coordinator </dev/null 2>&1 | tee logfile.log &`
 5. Start CrawlerSimulator
 	- `cd` into Crawler folder
-	- `bash compile.sh`
-	- `bash run.sh`
+	- `javac -Xlint -cp ".:../*" CrawlerSimulator.java`
+	- `nohup java -cp ".:../*" CrawlerSimulator </dev/null 2>&1 | tee logfile.log &`
 
 
 ## Implementation
