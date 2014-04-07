@@ -1,7 +1,9 @@
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -96,8 +98,9 @@ public class DBManager {
 	private ObjectId insert(JSONObject data) {
 		
 		try {
-			// Get author IDs.
-			List<ObjectId> authorIds = new ArrayList<ObjectId>();
+			// Get author <ID, name> pairs.
+			List<BasicDBObject> authorEntries = new ArrayList<BasicDBObject>();
+			
 			JSONArray authors = data.getJSONArray("authors");
 			for(int i = 0; i < authors.length(); i++) {
 				String authorName = authors.getString(i);
@@ -105,7 +108,10 @@ public class DBManager {
 				if(id == null) {
 					id = insertTempAuthor(authorName);
 				}
-				authorIds.add(id);
+				BasicDBObject authorEntry = new BasicDBObject();
+				authorEntry.put("id", id);
+				authorEntry.put("name", authorName);
+				authorEntries.add(authorEntry);
 			}
 			
 			// System.out.println("AuthorIds: " + authorIds.toString());
@@ -140,7 +146,7 @@ public class DBManager {
 				paperDoc.put("last_crawled", new Date());
 				paperDoc.put("abstract", data.getString("abstract"));
 				paperDoc.put("year", data.getInt("year"));
-				paperDoc.put("authors", authorIds);
+				paperDoc.put("authors", authorEntries);
 				paperDoc.put("citations", citationIds);
 				paperCollection.insert(paperDoc);
 				
@@ -154,8 +160,8 @@ public class DBManager {
 			}
 			
 			// Update authors' papers field and citations' cited_by field
-			for(int i = 0; i < authorIds.size(); i++) {
-				addPaperToAuthor(paperId, authorIds.get(i));
+			for(int i = 0; i < authorEntries.size(); i++) {
+				addPaperToAuthor(paperId, (ObjectId)authorEntries.get(i).get("id"));
 			}
 			
 			for(int i = 0; i < citationIds.size(); i++) {
@@ -206,5 +212,5 @@ public class DBManager {
 	
 	public static interface InsertDocumentsCallback {
 		public void onFinish(List<String> failedUrls);
-	}
+	}	
 }
