@@ -6,22 +6,10 @@ block content
 		br
 		br
 		form.row.centered.col-md-12(method='post', action='/simpleSearch')
-			.col-md-4.col-md-offset-1.no-padding
+			.col-md-4.col-md-offset-2.no-padding
 				input#simple-search-paper.form-control.search-box(type='text', name='title', placeholder='Title')
 			.col-md-3.no-padding
 				input#simple-search-author.form-control.search-box(type='text', name='author', placeholder='Author')
-			.col-md-1.no-padding
-				select#simple-search-year-from.form-control(name='yearFrom')
-					option --
-					-for (var i = 2014; i >= 1900; i--) {
-						option= i
-					-}
-			.col-md-1.no-padding
-				select#simple-search-year-to.form-control(name='yearTo')
-					option --
-					-for (var i = 2014; i >= 1900; i--) {
-						option= i
-					-}
 			button.btn.btn-warning.col-md-1(type='submit') Search
 		-if(data)
 			p= data

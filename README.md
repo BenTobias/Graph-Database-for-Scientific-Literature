@@ -13,6 +13,10 @@ CS3103 Concurrent Web Crawler Project
 
 `mongod --dbpath <path to your database folder>`
 
+If not successful, remove `mongod.lock` file and run 
+
+`mongod --dbpath <path to your database folder> --repair`
+
 **Configure Node Project**
 
 `npm install`

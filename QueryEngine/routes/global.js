@@ -11,32 +11,12 @@ var Schema = mongoose.Schema;
 //    Schema    //
 //////////////////
 
-var AuthorSchema = Schema({
-	name: String,
-	createdDate: { type: Date, default: Date.now },
-	papers: [{type: Schema.Types.ObjectId, ref:"Paper"}]
-}, { collection : 'author' });
-
-var PaperSchema = Schema({
-	title: String,
-	doi: String,
-	url: String,
-	downloadlinks: { type: [String], default: [] },
-	last_crawled: { type: Date, default: Date.now },
-	abstract: String,
-	year: { type: Number, min: 0, max: 2015 },
-	authors: [{type: Schema.Types.ObjectId, ref:"Author"}],
-	citations: [{type: Schema.Types.ObjectId, ref:"Paper"}]
-}, { collection : 'paper' });
-
-// var Author = mongoose.model('author', AuthorSchema);
-// var Paper = mongoose.model('paper', PaperSchema);
-
 var Author = mongoose.model('Author', 
         new Schema({
 			name: String,
 			createdDate: { type: Date, default: Date.now },
-			papers: [{type: Schema.Types.ObjectId, ref:"Paper"}]
+			papers: [{type: Schema.Types.ObjectId, ref:"Paper"}],
+			coauthors:[{type: Schema.Types.ObjectId, ref:"Author"}]
 		}), 'author');
 
 var Paper = mongoose.model('Paper', 
@@ -48,129 +28,36 @@ var Paper = mongoose.model('Paper',
 			last_crawled: { type: Date, default: Date.now },
 			abstract: String,
 			year: { type: Number, min: 0, max: 2015 },
-			authors: [{type: Schema.Types.ObjectId, ref:"Author"}],
+			authors: [{
+				id: {type: Schema.Types.ObjectId, ref:"Author"}, 
+				name: String
+			}],
 			citations: [{type: Schema.Types.ObjectId, ref:"Paper"}]
 		}), 'paper');
 
-var authorToObjectidMap = {};
 
-var createWildcardQuery = function (key, string, queryObj) {
-	queryObj[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
-	return queryObj;
-};
-
-var parseQuery = function(string, key, queryObj) {
+var parseQuery = function(string, key) {
 	var parsedQuery = parser.parseBooleanQuery(string, key);
 
 	if ((parsedQuery == undefined) || (typeof(parsedQuery) == 'string')) {
+		console.log('key is: ' + key);
 		// use original string
-		parsedQuery = createWildcardQuery(key, string, queryObj);
+		parsedQuery = {};
+		parsedQuery[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
 	}
 
 	return parsedQuery;
 };
 
-var parseAuthorQuery = function(query, callback) {
-	var tokens = parser.getTokensList(query);
-	var processedTokens = [];
 
-	async.map(tokens,
-		function (token, callback) {
-			if (isOperator(token)) {
-				return callback(null, [token]);
-			}
-
-			getAuthorOidFromDB(token, function(err, res) {
-				if (res.length == 0) {
-					res = [''];
-				}
-				else {
-					var tempRes = [];
-					for (var i = 0; i < res.length; i++) {
-						tempRes.push(res[i]);
-						tempRes.push('||');
-					}
-
-					tempRes.pop();
-
-					res = tempRes;
-				}
-				return callback(err, res);
-			});
-		},
-		function (err, res) {
-			var flattened = res.reduce(function (a, b) {
-				return a.concat(b);
-			}, []);
-			parsedQuery = parser.parseBooleanQueryFromTokens(flattened, 'authors');
-			callback(parsedQuery);
-		}
-	);
-};
-
-/**
- * Checks if the string is an operator.
- *
- * @param string {string}: .
- * @return {boolean}: true if the string is an operator, false otherwise.
- * @private
- */
-var isOperator = function (string) {
-	return ['&&', '||'].indexOf(string) != -1;
-};
-
-/**
- * Gets the list of author ObjectIds from the database. The query is a
- * wildcard query based on the author string. This means that more than
- * 1 author could be return if the string exists in the database.
- *
- * @param author {string}: the author name string to query.
- * @param callback {Function}: the callback function to call when the query
- * 		is completed.
- * @private
- */
-var getAuthorOidFromDB = function (author, callback) {
-	var parsedAuthor = createWildcardQuery('name', author, {});
-
-	Author.find(parsedAuthor, '_id', function(err, authorIdsList) {	
-		if(err) {
-			console.error('Unable to retrieve results from search: ' + err);
-			return callback(err, authorIdsList);
-		}
-		console.log('author: ', authorIdsList);
-
-		return callback(null,
-			authorIdsList.map(
-				function (idObj) {
-					return idObj['_id'];
-				})
-			);
-	});
-};
-
-var executeSearchQuery = function (title, yearFrom, yearTo, callback) {
-	var parsedTitle = parseQuery(title, 'title');
-	Paper.find(parsedTitle, 'title', function(err, papers) {
+var executeSearchQuery = function (queryObj, callback) {
+	Paper.find(queryObj, function(err, papers) {
 		if(err) {
 			console.error('Unable to retrieve results from search: ' + err);
 		}
 		callback(papers);
 	});
-};
-
-var executeSearchQueryWithAuthorCallback = function (title, yearFrom, yearTo,
-	callback) {
-	return function (parsedAuthor) {
-		var parsedQuery = parsedAuthor;
-		if (title != '') {
-			var parsedQuery = parseQuery(title, 'title', parsedAuthor);
-		}
-		Paper.find(parsedQuery, 'title', function(err, papers) {
-			if(err) 
-				console.error('Unable to retrieve results from search: ' + err);
-			callback(papers);
-		});
-	};
+	// callback(queryObj); // uncomment to see query
 };
 
 
@@ -178,16 +65,21 @@ var executeSearchQueryWithAuthorCallback = function (title, yearFrom, yearTo,
 //    Public API    //
 /////////////////////
 
-exports.filterPaperBy = function(title, author, yearFrom, yearTo, callback) {
-	// TODO: Add where statements
+exports.filterPaperByTitleAndAuthor = function(title, author, callback) {
 
-	if (author == '') {
-		executeSearchQuery(title, yearFrom, yearTo, callback);
-	}
-	else {
-		parseAuthorQuery(author, executeSearchQueryWithAuthorCallback(title,
-			yearFrom, yearTo, callback));
-	}
+	var queryTitle = {},
+		queryAuthor = {},
+		queryObj = {};
+
+	if(title)
+		queryTitle = parseQuery(title, 'title');
+
+	if(author)
+		queryAuthor = parseQuery(author, 'authors.name');
+
+	queryObj = {$and:[queryTitle, queryAuthor]};
+	
+	executeSearchQuery(queryObj, callback);
 };
 
 exports.findPapersWithSimilarCitation = function(theDoi, callback) {

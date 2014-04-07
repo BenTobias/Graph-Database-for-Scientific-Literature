@@ -8,19 +8,13 @@ exports.index = function(req, res){
 exports.simpleSearch = function(req, res){
 	var title = req.body.title.trim();
 	var author = req.body.author.trim();
-	var yearFrom = req.body.yearFrom.trim();
-	var yearTo = req.body.yearTo.trim();
-
-	var results = global.filterPaperBy(title, author, yearFrom, yearTo,
-		handleSearchCallback(res));
+	global.filterPaperByTitleAndAuthor(title, author, function(result){
+		res.send(result);
+	});
 };
 
 var handleSearchCallback = function(res) {
-	var helperFunction = function(results) {
-		res.render('index', {data:results});
-	};
-
-	return helperFunction;
+	return res.send(res);
 };
 
 exports.similarCitation = function(req, res){
