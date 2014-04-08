@@ -27,6 +27,8 @@ If not successful, remove `mongod.lock` file and run
 
 `bower install typeahead.js`
 
+`bower install backbone`
+
 You should see a `bower_components` folder in `public`.
 
 **Run locally**
