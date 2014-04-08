@@ -3,6 +3,16 @@ var global = require('./global');
 
 exports.index = function(req, res){
   	res.render('index');
+  	global.populateAuthorNamesJson();
+  	global.populatePaperTitlesJson();
+};
+
+exports.getAuthorNames = function(req, res){
+  	res.sendfile('authornames.json');
+};
+
+exports.getPaperTitles = function(req, res){
+  	res.sendfile('papertitles.json');
 };
 
 exports.simpleSearch = function(req, res){

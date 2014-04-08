@@ -38,6 +38,8 @@ if ('development' == app.get('env')) {
 }
 
 app.get('/', routes.index);
+app.get('/authornames.json', routes.getAuthorNames);
+app.get('/papertitles.json', routes.getPaperTitles);
 app.post('/simpleSearch', routes.simpleSearch);
 app.post('/similarCitationPaper', routes.similarCitation);
 

@@ -1,15 +1,36 @@
 extends layout
 
+block script
+	script(src='/javascripts/prefetch.js')
+
 block content
-	center
-		h1.centered  CS3103 Project Academic Paper Query Engine
-		br
-		br
-		form.row.centered.col-md-12(method='post', action='/simpleSearch')
-			.col-md-4.col-md-offset-2.no-padding
-				input#simple-search-paper.form-control.search-box(type='text', name='title', placeholder='Title')
-			.col-md-3.no-padding
-				input#simple-search-author.form-control.search-box(type='text', name='author', placeholder='Author')
-			button.btn.btn-warning.col-md-1(type='submit') Search
-		-if(data)
-			p= data
+	h1.centered  CS3103 Project Academic Paper Query Engine
+	br
+	br
+	form.row.centered.col-md-12(method='post', action='/simpleSearch')
+		.col-md-4.col-md-offset-2.no-padding
+			input#simple-search-paper.form-control.search-box(type='text', name='title', placeholder='Title')
+		.col-md-3.no-padding
+			input#simple-search-author.form-control.search-box(type='text', name='author', placeholder='Author')
+		button.btn.btn-warning.col-md-1(type='submit') Search
+	
+	br
+	br
+	br
+	br
+	form#prefetch.row.centered.col-md-12(method='post', action='/collaborationDistance')
+		.col-md-4.col-md-offset-2.no-padding
+			input#collabration-search-author1.typeahead.form-control.search-box(type='text', name='author1', placeholder='From Author')
+		.col-md-4.no-padding
+			input#collobration-search-author2.typeahead.form-control.search-box(type='text', name='author2', placeholder='To Author')
+		button.btn.btn-warning.col-md-1(type='submit') Search
+
+	br
+	br
+	br
+	br
+	form#prefetchpaper.row.centered.col-md-12(method='post', action='/similarCitationPaper')
+		.col-md-8.col-md-offset-2.no-padding
+			input#similar-search-author1.typeahead.form-control.search-box(type='text', name='paper', placeholder='Paper Title')
+		button.btn.btn-warning.col-md-1(type='submit') Search
+

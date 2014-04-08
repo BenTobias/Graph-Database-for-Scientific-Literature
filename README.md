@@ -25,6 +25,8 @@ If not successful, remove `mongod.lock` file and run
 
 `bower install bootstrap`
 
+`bower install typeahead.js`
+
 You should see a `bower_components` folder in `public`.
 
 **Run locally**

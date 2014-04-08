@@ -57,13 +57,62 @@ var executeSearchQuery = function (queryObj, callback) {
 		}
 		callback(papers);
 	});
-	// callback(queryObj); // uncomment to see query
 };
 
 
 //////////////////////
 //    Public API    //
 /////////////////////
+
+exports.populateAuthorNamesJson = function() {
+
+	var fs = require('fs');
+	var pth = 'authornames.json';
+
+	fs.exists(pth, function(exists){
+
+		if (!exists) {
+
+			Author.find({}, {'_id': 0, 'name':1}, function(err, authorNames){
+
+				authorNames = authorNames.map(function(e) {
+					return '"' + e.name + '"';
+				});
+
+				fs.writeFile(pth, authorNames, function(err) {
+					if(err) console.log(err);
+					else console.log('written author names to json file');
+				});
+			});
+		}	
+	});
+};
+
+exports.populatePaperTitlesJson = function() {
+
+	var fs = require('fs');
+	var pth = 'papertitles.json';
+
+	fs.exists(pth, function(exists){
+
+		if (!exists) {
+
+			Paper.find({citations:{$exists:true}}, {'_id': 0, 'title':1}, function(err, results){
+
+				results = results.map(function(e) {
+					var str = e.title;
+					str.replace('"', '\\"');
+					return '"' + e.title + '"';
+				});
+
+				fs.writeFile(pth, results, function(err) {
+					if(err) console.log(err);
+					else console.log('written author names to json file');
+				});
+			});
+		}	
+	});
+};
 
 exports.filterPaperByTitleAndAuthor = function(title, author, callback) {
 
