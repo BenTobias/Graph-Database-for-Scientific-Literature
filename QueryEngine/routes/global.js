@@ -51,18 +51,33 @@ var parseQuery = function(string, key) {
 
 
 var executeSearchQuery = function (queryObj, callback) {
-	Paper.find(queryObj, function(err, papers) {
-		if(err) {
-			console.error('Unable to retrieve results from search: ' + err);
-		}
-		callback(papers);
-	});
+	Paper.find(queryObj)
+		 .populate('citations', {'title':1, 'authors':1})
+		 .exec(function(err, papers) {
+			if(err) {
+				console.error('Unable to retrieve results from search: ' + err);
+			}
+			callback(papers);
+		});
 };
 
 
 //////////////////////
 //    Public API    //
 /////////////////////
+
+
+exports.getAuthor = function(id, callback) {
+	Author.findOne({_id: id}, function(err, results){
+		callback(results);
+	});
+}
+
+exports.getPaper = function(id, callback) {
+	Paper.findOne({_id: id}, function(err, results){
+		callback(results);
+	});
+}
 
 exports.populateAuthorNamesJson = function() {
 
@@ -100,9 +115,8 @@ exports.populatePaperTitlesJson = function() {
 			Paper.find({citations:{$exists:true}}, {'_id': 0, 'title':1}, function(err, results){
 
 				results = results.map(function(e) {
-					var str = e.title;
-					str.replace('"', '\\"');
-					return '"' + e.title + '"';
+					var str = e.title.split('"').join('');
+					return '"' + str + '"';
 				});
 
 				fs.writeFile(pth, results, function(err) {
@@ -131,27 +145,28 @@ exports.filterPaperByTitleAndAuthor = function(title, author, callback) {
 	executeSearchQuery(queryObj, callback);
 };
 
-exports.findPapersWithSimilarCitation = function(theDoi, callback) {
-	Paper.find({doi:theDoi}, 'citations')
+exports.findPapersWithSimilarCitation = function(theTitle, callback) {
+	Paper.find({title:theTitle}, 'citations')
 		.populate('citations', 'cited_by')
-		.exec(function(err, thisPaper){
-		if(err) 
-			console.log('Error retrieving papers with similar citation: ' + err);
-		else {
-			var citations = thisPaper[0]["citations"];
-			// console.log('cititions: ' + citations);
+		.exec(function(err, papers){
+			var citations = papers[0].citations;
+			
 			var similarPaperIds = [];
-			citations.forEach(function(paper){
-				console.log("paper: " + paper);
-				var cited_by = paper["cited_by"]; // Why are you undefined?!
-				cited_by.forEach(function(c) {
+			citations.forEach(function(citedPaper){
+				var citedBy = citedPaper.get("cited_by");
+		
+				citedBy.forEach(function(c) {
 					if(similarPaperIds.indexOf(c) == -1) {
 						similarPaperIds.push(c);
 					}	
 				});
 			});
-			callback(similarPaperIds);
-		}
+			
+			Paper.find({_id:{$in:similarPaperIds}, title:{$ne:theTitle}})
+				.populate('citations')
+				.exec(function(err, papers){
+					callback({'citations':citations.map(function(c){return c._id;}), 'papers': papers});
+			});
 	});
 };
 
