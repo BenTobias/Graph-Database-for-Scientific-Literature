@@ -23,11 +23,7 @@ If not successful, remove `mongod.lock` file and run
 
 `sudo npm install -g bower`
 
-`bower install bootstrap`
-
-`bower install typeahead.js`
-
-`bower install backbone`
+`bower install`
 
 You should see a `bower_components` folder in `public`.
 

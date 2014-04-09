@@ -5,6 +5,11 @@
   "authors": [
     "Xiangxin <xiangxinsg@gmail.com>"
   ],
+  "dependencies": {
+    "typeahead.js": "",
+    "bootstrap": "",
+    "backbone": ""
+  },
   "description": "query engine",
   "main": "app.js",
   "license": "none",
