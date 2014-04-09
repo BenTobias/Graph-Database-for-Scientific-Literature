@@ -1,9 +1,7 @@
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -98,9 +96,8 @@ public class DBManager {
 	private ObjectId insert(JSONObject data) {
 		
 		try {
-			// Get author <ID, name> pairs.
-			List<BasicDBObject> authorEntries = new ArrayList<BasicDBObject>();
-			
+			// Get author IDs.
+			List<ObjectId> authorIds = new ArrayList<ObjectId>();
 			JSONArray authors = data.getJSONArray("authors");
 			for(int i = 0; i < authors.length(); i++) {
 				String authorName = authors.getString(i);
@@ -108,13 +105,10 @@ public class DBManager {
 				if(id == null) {
 					id = insertTempAuthor(authorName);
 				}
-				BasicDBObject authorEntry = new BasicDBObject();
-				authorEntry.put("id", id);
-				authorEntry.put("name", authorName);
-				authorEntries.add(authorEntry);
+				authorIds.add(id);
 			}
 			
-			// System.out.println("authorEntries: " + authorEntries.toString());
+			// System.out.println("AuthorIds: " + authorIds.toString());
 			
 			// Get citation paper IDs.
 			List<ObjectId> citationIds = new ArrayList<ObjectId>();
@@ -146,7 +140,7 @@ public class DBManager {
 				paperDoc.put("last_crawled", new Date());
 				paperDoc.put("abstract", data.getString("abstract"));
 				paperDoc.put("year", data.getInt("year"));
-				paperDoc.put("authors", authorEntries);
+				paperDoc.put("authors", authorIds);
 				paperDoc.put("citations", citationIds);
 				paperCollection.insert(paperDoc);
 				
@@ -160,17 +154,12 @@ public class DBManager {
 			}
 			
 			// Update authors' papers field and citations' cited_by field
-			for(int i = 0; i < authorEntries.size(); i++) {
-				addPaperToAuthor(paperId, (ObjectId)authorEntries.get(i).get("id"));
+			for(int i = 0; i < authorIds.size(); i++) {
+				addPaperToAuthor(paperId, authorIds.get(i));
 			}
 			
 			for(int i = 0; i < citationIds.size(); i++) {
 				addPaperToPaper(paperId, citationIds.get(i));
-			}
-			
-			// Update add coauthor field to every author
-			for(int i = 0; i < authorEntries.size(); i++) {
-				addCoauthorToAuthor(authorEntries, (ObjectId)authorEntries.get(i).get("id"));
 			}
 			
 			return paperId;
@@ -178,26 +167,6 @@ public class DBManager {
 			e.printStackTrace();
 		}
 		return null;
-	}
-
-	private void addCoauthorToAuthor(List<BasicDBObject> authorEntries, ObjectId authorId) {
-		BasicDBObject searchQuery = new BasicDBObject();
-		searchQuery.put("_id", authorId);
-		DBObject author = authorCollection.findOne(searchQuery);
-		
-		BasicDBList coauthorIds = (BasicDBList) author.get("coauthors");
-		if(coauthorIds == null) coauthorIds = new BasicDBList();
-		for(int i = 0; i < authorEntries.size(); i++) {
-			ObjectId coauthorId = (ObjectId) authorEntries.get(i).get("id");
-			if(!authorId.equals(coauthorId) && !coauthorIds.contains(coauthorId)) {
-				coauthorIds.add(coauthorId);
-			}
-		}
-			
-		BasicDBObject newAuthor = new BasicDBObject();
-		newAuthor.append("$set", new BasicDBObject().append("coauthors", coauthorIds));
-		searchQuery = new BasicDBObject().append("_id", authorId);
-		authorCollection.update(searchQuery, newAuthor);
 	}
 
 	/**
@@ -237,5 +206,35 @@ public class DBManager {
 	
 	public static interface InsertDocumentsCallback {
 		public void onFinish(List<String> failedUrls);
-	}	
+	}
+
+	/*public static void main(String[] args) {
+		Parser p = new Parser();
+        String url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.248.5252";
+        URI uri;
+        try {
+            uri = new URI(url);
+            System.out.println(uri);
+            Crawler c = new Crawler(uri, null);
+            String html = c.getHTML(uri.getHost(), uri.getRawPath() + "?" + uri.getQuery(), 80);
+            JSONObject json = p.getPaperJson(html, uri);
+            System.out.println(json.toString());
+            
+            DBManager manager = new DBManager();
+            List<String> jsonStrings = new ArrayList<String>();
+            jsonStrings.add(json.toString());
+            manager.insertDocuments(jsonStrings, new InsertDocumentsCallback(){
+
+				@Override
+				public void onFinish(List<String> failedUrls) {
+					System.out.println("Finished with failed Urls " + failedUrls.size());
+				}
+            });
+            
+        } catch (URISyntaxException e) {
+            System.err.println("URISyntaxException when adding link: " + url);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+	}*/
 }
