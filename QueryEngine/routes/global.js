@@ -93,20 +93,27 @@ var BFSHelper = function(queue, visited, destid, callback) {
     var authorid = node[0];
     var authorlevel = node[1];
 
-    if (visited.indexOf(authorid) != -1) { // has been visited, skip.
-        return BFSHelper(queue, visited, callback);
-    }
-
     if (authorid.equals(destid)) {
         callback({results: authorlevel});
         return;
     }
 
+    if ((visited.indexOf(authorid) != -1) || // has been visited, skip.
+        (authorlevel == inf)) { 
+        return BFSHelper(queue, visited, callback);
+    }
+
     Author.find({_id: authorid}, 'coauthors')
     .exec(function(err, results) {
+        coauthorsList = results[0].coauthors;
+        coauthorsList = coauthorsList.map(function(authorid) {
+            return [authorid, authorlevel + 1];
+        });
 
-    })
-     // || (level > inf
+        queue = queue.concat(coauthorsList);
+
+        return BFSHelper(queue, visited, destid, callback);
+    });
 };
 
 //////////////////////
