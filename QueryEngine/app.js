@@ -10,6 +10,16 @@ var path = require('path');
 
 var app = express();
 
+// connect to db
+var global = require('./routes/global');
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/cs3103project');
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function callback(){
+	console.log('connected to db');
+});
+
 // all environments
 app.set('port', process.env.PORT || 3000);
 app.set('views', path.join(__dirname, 'views'));
@@ -28,9 +38,13 @@ if ('development' == app.get('env')) {
 }
 
 app.get('/', routes.index);
-app.post('/', function(req, res){
-	res.render('index', {data:{'name':'haha'}});
-});
+app.get('/author/:authorid', routes.getAuthor);
+app.get('/paper/:paperid', routes.getPaper);
+app.get('/authornames.json', routes.getAuthorNames);
+app.get('/papertitles.json', routes.getPaperTitles);
+app.post('/simpleSearch', routes.simpleSearch);
+app.post('/similarCitationPaper', routes.similarCitation);
+app.post('/collaborationDistance', routes.collaborationDistance);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
