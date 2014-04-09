@@ -117,6 +117,7 @@ public class Coordinator {
     private static int crawltimeout = 60 * 60 * 2; // 2 hours
     private static int defaultlimit = 100;
 	private static int OutBufferSize = 32768;
+	private static int selectTimeOut = 300;
 	/*
 	 * This looks scary, but this basically grabs any connection runs the function process
 	 */
@@ -124,7 +125,7 @@ public class Coordinator {
 		
 		try{
 			Selector selector = Selector.open();
-		
+			GraphMetrics metrics = new GraphMetrics();
 			//init connections
 			ServerSocketChannel ssc = ServerSocketChannel.open();
 			ssc.bind(new InetSocketAddress(port));
@@ -133,8 +134,10 @@ public class Coordinator {
 			System.out.println("Listening on port "+port);
 			while(true)
 			{
-				int num = selector.select();
+				int num = selector.select(selectTimeOut);
 				if (num == 0) { //no activity
+					//ah, then we can do stuff.
+					metrics.IteratePageRank();
 					continue;
 				}
 				Set<SelectionKey> keys = selector.selectedKeys();
