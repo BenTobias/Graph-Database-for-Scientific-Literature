@@ -6,7 +6,7 @@ var parser = require('./parser');
 
 var Schema = mongoose.Schema;
 
-var inf = 16;
+var inf = 50;
 
 
 //////////////////
@@ -76,7 +76,7 @@ var BFS = function(src, dest, callback) {
 
     // List of author id and author level.
     var queue = srcCoauthors.map(function(authorid) {
-        return [authorid, 0];
+        return [authorid, 1];
     });
 
     var visited = [srcid];
@@ -84,24 +84,39 @@ var BFS = function(src, dest, callback) {
     BFSHelper(queue, visited, destid, callback);
 };
 
+var isVisited = function(id, visited) {
+    var idString = id.toString();
+
+    for (var i = 0, visitedid = visited[i]; i < visited.length; i++) {
+        if (idString == visitedid.toString()) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
 var BFSHelper = function(queue, visited, destid, callback) {
     if (queue.length == 0) {
         callback({'result': 'Authors are not connected.'});
+        return;
     }
 
     var node = queue.shift();
     var authorid = node[0];
     var authorlevel = node[1];
 
-    if (authorid.equals(destid)) {
+    if (authorid.toString() == destid.toString()) {
         callback({results: authorlevel});
         return;
     }
 
-    if ((visited.indexOf(authorid) != -1) || // has been visited, skip.
-        (authorlevel == inf)) { 
-        return BFSHelper(queue, visited, callback);
+    // has been visited, skip.
+    if (isVisited(authorid, visited) || (authorlevel == inf)) {
+        return BFSHelper(queue, visited, destid, callback);
     }
+
+    visited.push(authorid);
 
     Author.find({_id: authorid}, 'coauthors')
     .exec(function(err, results) {
