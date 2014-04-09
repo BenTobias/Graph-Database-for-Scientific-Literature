@@ -47,3 +47,4 @@ Crawler/*.txt
 */.DS_STORE
 QueryEngine/*.log
 QueryEngine/public/bower_components/*
+QueryEngine/node_modules/*
