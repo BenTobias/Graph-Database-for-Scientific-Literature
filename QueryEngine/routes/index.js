@@ -44,5 +44,11 @@ exports.similarCitation = function(req, res){
 	});
 };
 
+exports.collaborationDistance = function(req, res) {
+	var authorTo = req.body.authorTo;
+	var authorFrom = req.body.authorFrom;
 
-
+	global.getShortestPathBetweenAuthors(authorTo, authorFrom, function(result) {
+		console.log(result);
+	});
+};

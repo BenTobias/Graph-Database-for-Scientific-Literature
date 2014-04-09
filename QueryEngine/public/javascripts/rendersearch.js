@@ -114,6 +114,7 @@ $(document).ready(function() {
       var authorToIn = $.trim($('#collaboration-search-author2').val());
       if(authorFromIn && authorToIn) {
         var data = {authorFrom:authorFromIn, authorTo:authorToIn};
+        console.log(data);
         this.ajaxPostRequest(data, '/collaborationDistance', function(result){
           console.log(result);
         });

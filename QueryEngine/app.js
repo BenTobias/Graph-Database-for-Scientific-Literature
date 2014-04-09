@@ -44,6 +44,7 @@ app.get('/authornames.json', routes.getAuthorNames);
 app.get('/papertitles.json', routes.getPaperTitles);
 app.post('/simpleSearch', routes.simpleSearch);
 app.post('/similarCitationPaper', routes.similarCitation);
+app.post('/collaborationDistance', routes.collaborationDistance);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
