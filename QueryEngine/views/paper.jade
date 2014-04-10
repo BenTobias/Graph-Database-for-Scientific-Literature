@@ -1,0 +1,21 @@
+extends layout
+
+block content
+	h1= data.title
+	if data.citations.length > 0
+		br
+		div
+			h4 Citations
+			ul#citations
+				for citation in data.citations
+					li
+						a(href='/paper/' + citation._id)= citation.title
+	if data.cited_by.length > 0
+		br
+		div
+			h4 Cited by
+			ul#cited_by
+				for cited_by in data.cited_by
+					li
+						a(href='/paper/' + cited_by._id)= cited_by.title
+	

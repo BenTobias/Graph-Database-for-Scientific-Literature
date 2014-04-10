@@ -10,14 +10,14 @@ exports.index = function(req, res){
 exports.getAuthor = function(req, res){
 	var id = req.params.authorid;
 	global.getAuthor(id, function(result){
-		res.send(result);
+		res.render('author', {'data': result});
 	});
 }
 
 exports.getPaper = function(req, res){
 	var id = req.params.paperid;
 	global.getPaper(id, function(result){
-		res.send(result);
+		res.render('paper', {'data':result});
 	});
 }
 

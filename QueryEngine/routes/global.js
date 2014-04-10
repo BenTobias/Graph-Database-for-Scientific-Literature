@@ -34,7 +34,8 @@ var Paper = mongoose.model('Paper',
             id: {type: Schema.Types.ObjectId, ref:"Author"}, 
             name: String
         }],
-        citations: [{type: Schema.Types.ObjectId, ref:"Paper"}]
+        citations: [{type: Schema.Types.ObjectId, ref:"Paper"}],
+        cited_by: [{type: Schema.Types.ObjectId, ref:"Paper"}]
     }), 'paper');
 
 
@@ -136,15 +137,21 @@ var BFSHelper = function(queue, visited, destid, callback) {
 
 
 exports.getAuthor = function(id, callback) {
-    Author.findOne({_id: id}, function(err, results){
+    Author.findOne({_id: id})
+        .populate('coauthors', 'name')
+        .populate('papers', 'title')
+        .exec(function(err, results){
         callback(results);
     });
 }
 
 exports.getPaper = function(id, callback) {
-    Paper.findOne({_id: id}, function(err, results){
-        callback(results);
-    });
+    Paper.findOne({_id: id})
+         .populate('citations', 'title')
+         .populate('cited_by', 'title')
+         .exec(function(err, results){
+            callback(results);
+        });
 }
 
 exports.populateAuthorNamesJson = function() {

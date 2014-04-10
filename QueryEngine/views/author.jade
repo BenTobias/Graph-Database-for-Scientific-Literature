@@ -1,0 +1,19 @@
+extends layout
+
+block content
+	h1#name= data.name
+	if data.coauthors.length > 0
+		br
+		h3 Worked with
+		ul#coauthors
+			for author in data.coauthors
+				li
+					a(href='/author/' + author._id)= author.name
+						
+	if data.papers.length > 0
+		br
+		h3 Pulished papers
+		ul#papers
+			for paper in data.papers
+				li 
+					a(href='/paper/' + paper._id)= paper.title
