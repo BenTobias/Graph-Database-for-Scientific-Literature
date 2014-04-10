@@ -49,6 +49,6 @@ exports.collaborationDistance = function(req, res) {
 	var authorFrom = req.body.authorFrom;
 
 	global.getShortestPathBetweenAuthors(authorTo, authorFrom, function(result) {
-		console.log(result);
+		res.send(result);
 	});
 };

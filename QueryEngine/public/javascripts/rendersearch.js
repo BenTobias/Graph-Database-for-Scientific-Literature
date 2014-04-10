@@ -69,11 +69,6 @@ $(document).ready(function() {
       this.alertBox.hide();
     },
 
-    clickOnBtn: function(event) {
-      console.log('btn clicked');
-      console.log(event);
-    },
-
     ajaxPostRequest: function(data, url, callback) {
 
       $.ajax({
@@ -92,13 +87,14 @@ $(document).ready(function() {
     },
 
     dismissAlert: function(event) {
-      console.log(event);
       $('.alert-dismissable').fadeOut();
+      this.alertBox.find('p').html('<strong>Invalid input!</strong> Please fill in all required fields.');
     },
 
     simpleSearch: function(event) {
-      var titleIn = $.trim($('#simple-search-title').val());
-      var authorIn = $.trim($('#simple-search-author').val());
+        this.dismissAlert();
+        var titleIn = $.trim($('#simple-search-title').val());
+        var authorIn = $.trim($('#simple-search-author').val());
 
       if (titleIn || authorIn) {
         var data = {title:titleIn, author:authorIn};
@@ -113,21 +109,30 @@ $(document).ready(function() {
     },
 
     collaborationSearch: function(event) {
-      var authorFromIn = $.trim($('#collaboration-search-author1').val());
-      var authorToIn = $.trim($('#collaboration-search-author2').val());
+        this.dismissAlert();
+        var authorFromIn = $.trim($('#collaboration-search-author1').val());
+        var authorToIn = $.trim($('#collaboration-search-author2').val());
+        var alertBox = this.alertBox;
       if(authorFromIn && authorToIn) {
         var data = {authorFrom:authorFromIn, authorTo:authorToIn};
-        console.log(data);
+        
         this.ajaxPostRequest(data, '/collaborationDistance', function(result){
             resultPaperCollection.reset();
-            console.log(result);
+            console.log('result', result);
+            if (result.error) {
+                alertBox.find('p').html(result.error);
+                alertBox.fadeIn('fast');
+            } else {
+                
+            }
         });
       } else {
-        this.alertBox.fadeIn('fast');
+        alertBox.fadeIn('fast');
       }
     },
 
     similarPaperSearch: function(event) {
+        this.dismissAlert();
       var titleIn = $.trim($('#similar-search-paper').val());
       if(titleIn) {
         var data = {title:titleIn};

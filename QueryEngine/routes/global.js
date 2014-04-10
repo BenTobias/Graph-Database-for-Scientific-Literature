@@ -42,7 +42,6 @@ var parseQuery = function(string, key) {
     var parsedQuery = parser.parseBooleanQuery(string, key);
 
     if ((parsedQuery == undefined) || (typeof(parsedQuery) == 'string')) {
-        console.log('key is: ' + key);
         // use original string
         parsedQuery = {};
         parsedQuery[key] = {'$regex': '.*' + string + '.*', '$options': 'i'};
@@ -242,13 +241,13 @@ exports.findPapersWithSimilarCitation = function(theTitle, callback) {
 exports.getShortestPathBetweenAuthors = function(authorTo, authorFrom, callback) {
     Author.find({name: authorTo}, '_id coauthors')
     .exec(function (err, authorToResult) {
-        if (authorToResult.length == 0) {
+        if (err || authorToResult.length == 0) {
             callback({'error': 'No such author: ' + authorTo});
         }
         else {
             Author.find({name: authorFrom}, '_id coauthors')
             .exec(function (err, authorFromResult) {
-                if (authorFromResult.length == 0) {
+                if (err || authorFromResult.length == 0) {
                     callback({'error': 'No such author: ' + authorFrom});
                 }
                 else {
