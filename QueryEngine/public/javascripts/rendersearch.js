@@ -38,6 +38,7 @@ $(document).ready(function() {
     el: '#result-list',
 
     initialize: function() {
+      this.listenTo(resultPaperCollection, 'reset', this.clear);
       this.listenTo(resultPaperCollection, 'add', this.addOne);
     },
 
@@ -74,6 +75,7 @@ $(document).ready(function() {
     },
 
     ajaxPostRequest: function(data, url, callback) {
+
       $.ajax({
         url: url,
         type: "POST",
@@ -101,7 +103,8 @@ $(document).ready(function() {
       if (titleIn || authorIn) {
         var data = {title:titleIn, author:authorIn};
         this.ajaxPostRequest(data, '/simpleSearch', function(result){
-          resultPaperCollection.set(result.data);
+            resultPaperCollection.reset();
+            resultPaperCollection.set(result.data);
         });
 
       } else {
@@ -116,7 +119,8 @@ $(document).ready(function() {
         var data = {authorFrom:authorFromIn, authorTo:authorToIn};
         console.log(data);
         this.ajaxPostRequest(data, '/collaborationDistance', function(result){
-          console.log(result);
+            resultPaperCollection.reset();
+            console.log(result);
         });
       } else {
         this.alertBox.fadeIn('fast');
@@ -128,7 +132,8 @@ $(document).ready(function() {
       if(titleIn) {
         var data = {title:titleIn};
         this.ajaxPostRequest(data, '/similarCitationPaper', function(result){
-          resultPaperCollection.set(result.data.papers);
+            resultPaperCollection.reset();
+            resultPaperCollection.set(result.data.papers);
         });
       } else {
         this.alertBox.fadeIn('fast');

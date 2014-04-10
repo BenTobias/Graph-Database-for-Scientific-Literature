@@ -44,6 +44,7 @@ Crawler/log/*
 Crawler/*.txt
 
 ### Node ###
+.DS_STORE
 */.DS_STORE
 QueryEngine/*.log
 QueryEngine/public/bower_components/*

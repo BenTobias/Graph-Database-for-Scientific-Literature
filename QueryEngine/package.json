@@ -9,8 +9,6 @@
     "express": "3.5.1",
     "jade": "*",
     "mongoose": "latest",
-    "neo4j": "latest",
-    "mongraph": "latest",
     "async": "latest"
   }
 }
