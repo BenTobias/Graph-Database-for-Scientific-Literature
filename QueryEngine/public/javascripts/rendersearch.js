@@ -2,10 +2,25 @@ $(document).ready(function() {
 
   var ResultPaperCollection = Backbone.Collection.extend({
 
+  });
+
+  var ResultAuthorCollection = Backbone.Collection.extend({
 
   });
 
   var resultPaperCollection = new ResultPaperCollection();
+  var resultAuthorCollection = new ResultAuthorCollection();
+
+
+  var SingleAuthorView = Backbone.View.extend({
+    tagName: 'li',
+
+    render: function() {
+      var template = _.template($("#single-author-template").html(), {model: this.model.toJSON()});
+      return $(this.el).html(template);
+    },
+
+  });
 
 
   var SinglePaperView = Backbone.View.extend({
@@ -40,6 +55,9 @@ $(document).ready(function() {
     initialize: function() {
       this.listenTo(resultPaperCollection, 'reset', this.clear);
       this.listenTo(resultPaperCollection, 'add', this.addOne);
+
+      this.listenTo(resultAuthorCollection, 'reset', this.clear);
+      this.listenTo(resultAuthorCollection, 'add', this.addOneAuthor);
     },
 
     addOne: function (paper) {
@@ -47,11 +65,15 @@ $(document).ready(function() {
       this.$el.append(view.render());
     },
 
+    addOneAuthor: function(author) {
+      var view = new SingleAuthorView({ model: author });
+      this.$el.append(view.render());
+    },
+
     clear: function() {
       this.$el.empty();
     }
   });
-
 
   var IndexView = Backbone.View.extend({
 
@@ -67,6 +89,14 @@ $(document).ready(function() {
     initialize: function(options) {
       this.alertBox = $('.alert-dismissable');
       this.alertBox.hide();
+      $('#distance').hide();
+      $('#path').hide();
+    },
+
+    clear: function() {
+        this.dismissAlert();
+        $('#distance').hide();
+        $('#path').hide();
     },
 
     ajaxPostRequest: function(data, url, callback) {
@@ -92,7 +122,7 @@ $(document).ready(function() {
     },
 
     simpleSearch: function(event) {
-        this.dismissAlert();
+        this.clear();
         var titleIn = $.trim($('#simple-search-title').val());
         var authorIn = $.trim($('#simple-search-author').val());
 
@@ -100,6 +130,7 @@ $(document).ready(function() {
         var data = {title:titleIn, author:authorIn};
         this.ajaxPostRequest(data, '/simpleSearch', function(result){
             resultPaperCollection.reset();
+            resultAuthorCollection.reset();
             resultPaperCollection.set(result.data);
         });
 
@@ -109,7 +140,8 @@ $(document).ready(function() {
     },
 
     collaborationSearch: function(event) {
-        this.dismissAlert();
+        this.clear();
+        $('#distance').hide();
         var authorFromIn = $.trim($('#collaboration-search-author1').val());
         var authorToIn = $.trim($('#collaboration-search-author2').val());
         var alertBox = this.alertBox;
@@ -117,13 +149,17 @@ $(document).ready(function() {
         var data = {authorFrom:authorFromIn, authorTo:authorToIn};
         
         this.ajaxPostRequest(data, '/collaborationDistance', function(result){
+            resultAuthorCollection.reset();
             resultPaperCollection.reset();
             console.log('result', result);
             if (result.error) {
                 alertBox.find('p').html(result.error);
                 alertBox.fadeIn('fast');
             } else {
-                
+                $('#distance').html('Collaboration distance: ' + result.distance.toString());
+                $('#distance').show();
+                $('#path').show();
+                resultAuthorCollection.set(result.path);
             }
         });
       } else {
@@ -132,11 +168,12 @@ $(document).ready(function() {
     },
 
     similarPaperSearch: function(event) {
-        this.dismissAlert();
+        this.clear();
       var titleIn = $.trim($('#similar-search-paper').val());
       if(titleIn) {
         var data = {title:titleIn};
         this.ajaxPostRequest(data, '/similarCitationPaper', function(result){
+            resultAuthorCollection.reset();
             resultPaperCollection.reset();
             resultPaperCollection.set(result.data.papers);
         });

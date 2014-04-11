@@ -39,6 +39,8 @@ block content
 	div.vspace-70
 
 	div#display
+		h3#distance
+		h3#path Path:
 		ul#result-list
 
 
@@ -81,9 +83,19 @@ block content
 			</div>
 		</div>
 
-
-
-
+	script#single-author-template(type='text/template').
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<strong><%-model.name%></strong>
+			</div>
+			<div class="panel-body">
+				<p><strong>Co-authors  </strong>
+					<% _.each(model.coauthors, function(author){ %>
+						<a href='/author/<%= author._id %>' target='_blank'><%= author.name%></a> | 
+					<% }); %>
+				</p>
+			</div>
+		</div>
 
 
 

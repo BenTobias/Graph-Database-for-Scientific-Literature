@@ -57,9 +57,10 @@ var executeSearchQuery = function(queryObj, callback) {
     .populate('citations', {'title':1, 'authors':1})
     .exec(function(err, papers) {
         if(err) {
-            console.error('Unable to retrieve results from search: ' + err);
+            callback({'error': 'Unable to retrieve results.'});
+        } else {
+            callback(papers);    
         }
-        callback(papers);
     });
 };
 
@@ -68,7 +69,7 @@ var BFS = function(src, dest, callback) {
     var destid = dest._id;
 
     if (srcid.equals(destid)) {
-        callback({results: 0});
+        callback({'distance': 0});
         return;
     }
 
@@ -80,15 +81,22 @@ var BFS = function(src, dest, callback) {
     });
 
     var visited = [srcid];
+    visited = visited.concat(srcCoauthors);
 
-    BFSHelper(queue, visited, destid, callback);
+    var parent = new Object();
+    parent[srcid] = -1;
+    for(var i = 0; i < srcCoauthors.length; i++) {
+        parent[srcCoauthors[i]] = srcid;
+    }
+
+    BFSHelper(queue, visited, parent, destid, callback);
 };
 
 var isVisited = function(id, visited) {
     var idString = id.toString();
 
-    for (var i = 0, visitedid = visited[i]; i < visited.length; i++) {
-        if (idString == visitedid.toString()) {
+    for (var i = 0; i < visited.length; i++) {
+        if (idString == visited[i].toString()) {
             return true;
         }
     }
@@ -96,9 +104,10 @@ var isVisited = function(id, visited) {
     return false;
 };
 
-var BFSHelper = function(queue, visited, destid, callback) {
-    if (queue.length == 0) {
-        callback({'result': 'Authors are not connected.'});
+var BFSHelper = function(queue, visited, parent, destid, callback) {
+
+    if (queue.length == 0 || authorlevel == inf) {
+        callback({'distance': inf});
         return;
     }
 
@@ -106,30 +115,56 @@ var BFSHelper = function(queue, visited, destid, callback) {
     var authorid = node[0];
     var authorlevel = node[1];
 
-    if (authorid.toString() == destid.toString()) {
-        callback({results: authorlevel});
-        return;
-    }
-
-    // has been visited, skip.
-    if (isVisited(authorid, visited) || (authorlevel == inf)) {
-        return BFSHelper(queue, visited, destid, callback);
-    }
-
-    visited.push(authorid);
-
-    Author.find({_id: authorid}, 'coauthors')
-    .exec(function(err, results) {
+    Author.find({_id: authorid}, 'coauthors', function(err, results) {
         coauthorsList = results[0].coauthors;
-        coauthorsList = coauthorsList.map(function(authorid) {
-            return [authorid, authorlevel + 1];
-        });
 
-        queue = queue.concat(coauthorsList);
+        for(var i = 0; i < coauthorsList.length; i++) {
+            var id = coauthorsList[i];
+            
+            if(!isVisited(id, visited)) {
+                
+                visited.push(id);
+                parent[id] = authorid;
+                queue.push([id, authorlevel + 1]);
 
-        return BFSHelper(queue, visited, destid, callback);
+                if (id.toString() == destid.toString()) {
+                    buildPath(authorlevel + 1, parent, destid, callback);
+                    // callback({'distance': authorlevel + 1, 'path':getPath(parent, destid)});
+                    return;
+                }
+            }
+        }
+
+        return BFSHelper(queue, visited, parent, destid, callback);
     });
 };
+
+var buildPath = function(dist, parent, destid, callback) {
+
+    var id = destid;
+    var path = [id];
+    while(parent[id] != -1) {
+        path.unshift(parent[id]);
+        id = parent[id];
+    }
+
+    Author.find({_id:{$in:path}}, 'name coauthors')
+          .populate('coauthors', 'name')
+          .exec(function(err, results){
+
+        var idNameMap = new Object();
+        for(var i = 0; i < results.length; i++) {
+            idNameMap[results[i]._id.toString()] = {'name': results[i].name, 'coauthors':results[i].coauthors};
+        }
+
+        path = path.map(function(node){
+            return {'id':node, 'name':idNameMap[node.toString()].name, 'coauthors':idNameMap[node.toString()].coauthors};
+        });
+
+        callback({'distance': dist, 'path': path});
+    });
+}
+
 
 //////////////////////
 //    Public API    //
@@ -258,7 +293,7 @@ exports.getShortestPathBetweenAuthors = function(authorTo, authorFrom, callback)
                     callback({'error': 'No such author: ' + authorFrom});
                 }
                 else {
-                    BFS(authorToResult[0], authorFromResult[0], callback);
+                    BFS(authorFromResult[0], authorToResult[0], callback);
                 }
             });
         }
