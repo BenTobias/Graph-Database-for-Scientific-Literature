@@ -100,7 +100,8 @@ $(document).ready(function() {
     },
 
     ajaxPostRequest: function(data, url, callback) {
-
+      var loadingDialog = document.getElementById('loading-dialog');
+      loadingDialog.style.display = 'block';
       $.ajax({
         url: url,
         type: "POST",
@@ -109,6 +110,7 @@ $(document).ready(function() {
         data: JSON.stringify(data),
         success: function(result) {
           callback(result);
+          loadingDialog.style.display = 'none';
         },
         error: function (xhr, status, err) {
           console.log(xhr);
@@ -122,10 +124,9 @@ $(document).ready(function() {
     },
 
     simpleSearch: function(event) {
-        this.clear();
-        var titleIn = $.trim($('#simple-search-title').val());
-        var authorIn = $.trim($('#simple-search-author').val());
-
+      this.clear();
+      var titleIn = $.trim($('#simple-search-title').val());
+      var authorIn = $.trim($('#simple-search-author').val());
       if (titleIn || authorIn) {
         var data = {title:titleIn, author:authorIn};
         this.ajaxPostRequest(data, '/simpleSearch', function(result){
