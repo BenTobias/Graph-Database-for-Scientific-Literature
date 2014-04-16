@@ -1,6 +1,7 @@
 body {
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  height: 100%;
 }
 
 .centered {
@@ -24,6 +25,21 @@ body {
 
 #loading-dialog {
     display: none;
+    z-index: 2;
+    padding: 5px;
+    border-radius: 0 0 6px 6px;
+}
+
+#loading-overlay {
+    display: none;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #fbfbfb;
+    z-index: 1;
+    opacity: 0.6;
 }
 
 ul {

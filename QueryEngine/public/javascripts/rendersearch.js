@@ -100,9 +100,9 @@ $(document).ready(function() {
     },
 
     ajaxPostRequest: function(data, url, callback) {
-      var loadingDialog = document.getElementById('loading-dialog');
-      loadingDialog.style.display = 'block';
+      this.showLoadingStatus();
       $.ajax({
+        context: this,
         url: url,
         type: "POST",
         dataType: "json",
@@ -110,7 +110,7 @@ $(document).ready(function() {
         data: JSON.stringify(data),
         success: function(result) {
           callback(result);
-          loadingDialog.style.display = 'none';
+          this.hideLoadingStatus();
         },
         error: function (xhr, status, err) {
           console.log(xhr);
@@ -121,6 +121,20 @@ $(document).ready(function() {
     dismissAlert: function(event) {
       $('.alert-dismissable').fadeOut();
       this.alertBox.find('p').html('<strong>Invalid input!</strong> Please fill in all required fields.');
+    },
+
+    showLoadingStatus: function() {
+      var loadingDialog = document.getElementById('loading-dialog');
+      loadingDialog.style.display = 'block';
+      var loadingOverlay = document.getElementById('loading-overlay');
+      loadingOverlay.style.display = 'block';
+    },
+
+    hideLoadingStatus: function() {
+      var loadingDialog = document.getElementById('loading-dialog');
+      loadingDialog.style.display = 'none';
+      var loadingOverlay = document.getElementById('loading-overlay');
+      loadingOverlay.style.display = 'none';
     },
 
     simpleSearch: function(event) {
