@@ -68,7 +68,7 @@ block content
 					input#similar-search-paper.typeahead.form-control.search-box(type='text', placeholder='Paper Title')
 				button#similar-paper-search-btn.btn.btn-warning.col-md-1 Search
 
-	div.vspace-70
+	div.vspace-700
 
 	div#display
 		h3#distance
@@ -77,7 +77,7 @@ block content
 
 
 	script#single-paper-template(type='text/template').
-		<div class="panel panel-default collapse-group">
+		<div class="panel panel-default collapse-group search-result">
 			<div class="panel-heading">
 				<span class="glyphicon glyphicon-chevron-right collapse-btn"></span>
 					<strong><%-model.title%></strong>
@@ -116,7 +116,7 @@ block content
 		</div>
 
 	script#single-author-template(type='text/template').
-		<div class="panel panel-default">
+		<div class="panel panel-default search-result">
 			<div class="panel-heading">
 				<strong><%-model.name%></strong>
 			</div>

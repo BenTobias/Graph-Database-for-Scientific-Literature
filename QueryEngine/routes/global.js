@@ -55,6 +55,7 @@ var parseQuery = function(string, key) {
 var executeSearchQuery = function(queryObj, callback) {
     Paper.find(queryObj)
     .populate('citations', {'title':1, 'authors':1})
+    .limit(200)
     .exec(function(err, papers) {
         if(err) {
             callback({'error': 'Unable to retrieve results.'});

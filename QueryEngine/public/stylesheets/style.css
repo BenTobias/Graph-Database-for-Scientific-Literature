@@ -59,8 +59,16 @@ ul {
 	height:70px;
 }
 
+.vspace-700 {
+    height:600px;
+}
+
 .vspace-50 {
 	height: 50px;
+}
+
+.search-result {
+
 }
 
 .collapse-btn, .single-paper-author, .single-paper-citation {
