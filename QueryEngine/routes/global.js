@@ -76,6 +76,18 @@ var BFS = function(src, dest, callback) {
 
     var srcCoauthors = src.coauthors;
 
+    for(var i = 0; i < srcCoauthors.length; i++) {
+        if (srcCoauthors[i].toString() == destid.toString()) {
+            console.log('found');
+            var parent = new Object();
+            parent[srcid] = -1;
+            parent[srcCoauthors[i]] = srcid;
+            buildPath(1, parent, destid, callback);
+            // callback({'distance': authorlevel + 1, 'path':getPath(parent, destid)});
+            return;
+        }
+    }
+
     // List of author id and author level.
     var queue = srcCoauthors.map(function(authorid) {
         return [authorid, 1];
@@ -122,17 +134,25 @@ var BFSHelper = function(queue, visited, parent, destid, callback) {
         for(var i = 0; i < coauthorsList.length; i++) {
             var id = coauthorsList[i];
             
+            if (id.toString() == destid.toString()) {
+                console.log('here')
+                if(!isVisited(id, visited)) {
+                
+                    visited.push(id);
+                    parent[id] = authorid;
+                    queue.push([id, authorlevel + 1]);
+                }
+
+                buildPath(authorlevel + 1, parent, destid, callback);
+                // callback({'distance': authorlevel + 1, 'path':getPath(parent, destid)});
+                return;
+            }
+
             if(!isVisited(id, visited)) {
                 
                 visited.push(id);
                 parent[id] = authorid;
                 queue.push([id, authorlevel + 1]);
-
-                if (id.toString() == destid.toString()) {
-                    buildPath(authorlevel + 1, parent, destid, callback);
-                    // callback({'distance': authorlevel + 1, 'path':getPath(parent, destid)});
-                    return;
-                }
             }
         }
 
