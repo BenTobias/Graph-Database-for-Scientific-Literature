@@ -18,28 +18,55 @@ block content
 
 	div.search-fields
 		h1.centered  CS3103 Project Academic Paper Query Engine
-		div.vspace-70
-
-		div.row.centered.col-md-12
-			.col-md-4.col-md-offset-2.no-padding
-				input#simple-search-title.form-control.search-box(type='text', placeholder='Title')
-			.col-md-3.no-padding
-				input#simple-search-author.form-control.search-box(type='text', placeholder='Author')
-			button#simple-search-btn.btn.btn-warning.col-md-1 Search
 		
-		div.vspace-70
-		div#prefetch.row.centered.col-md-12
-			.col-md-3.col-md-offset-2.no-padding
-				input#collaboration-search-author1.typeahead.form-control.search-box(type='text', placeholder='From Author')
-			.col-md-3.no-padding
-				input#collaboration-search-author2.typeahead.form-control.search-box(type='text', placeholder='To Author')
-			button#collaboration-search-btn.btn.btn-warning.col-md-1.col-md-offset-1 Search
+		div.col-md-12.search-field
 
-		div.vspace-70
-		div#prefetchpaper.row.centered.col-md-12
-			.col-md-7.col-md-offset-2.no-padding
-				input#similar-search-paper.typeahead.form-control.search-box(type='text', placeholder='Paper Title')
-			button#similar-paper-search-btn.btn.btn-warning.col-md-1 Search
+			div.col-md-8.col-md-offset-2.panel.panel-default.no-margin.no-padding
+				div.panel-heading
+					h4.panel-title 
+						strong Search for papers by keywords in title and author.
+				div.panel-body
+					P E.g. networks + mun choon, networks && protocols + david,
+					P networks && protocols || wireless + david && alex
+			
+			div.row.centered.col-md-12.no-padding
+				.col-md-4.col-md-offset-2.no-padding
+					input#simple-search-title.form-control.search-box(type='text', placeholder='Paper Title')
+				.col-md-3.no-padding
+					input#simple-search-author.form-control.search-box(type='text', placeholder='Author')
+				button#simple-search-btn.btn.btn-warning.col-md-1 Search
+
+		
+		div.col-md-12.search-field
+
+			div.col-md-8.col-md-offset-2.panel.panel-default.no-margin.no-padding
+				div.panel-heading
+					h4.panel-title 
+						strong Search for collaboration distance from an author to another.
+				div.panel-body
+					P E.g. Bhojan An <-> A/P Chan Mun Choon
+
+			div#prefetch.row.centered.col-md-12.no-padding
+				.col-md-3.col-md-offset-2.no-padding
+					input#collaboration-search-author1.typeahead.form-control.search-box(type='text', placeholder='From Author')
+				.col-md-3.no-padding
+					input#collaboration-search-author2.typeahead.form-control.search-box(type='text', placeholder='To Author')
+				button#collaboration-search-btn.btn.btn-warning.col-md-1.col-md-offset-1 Search
+
+		div.col-md-12.search-field
+
+			div.col-md-8.col-md-offset-2.panel.panel-default.no-margin.no-padding
+				div.panel-heading
+					h3.panel-title 
+						strong Search for relavant papers by title.
+				div.panel-body
+					P E.g. ARIVU: Making Networked Mobile Games Green A Scalable Power-Aware Middleware
+
+
+			div#prefetchpaper.row.centered.col-md-12.no-padding
+				.col-md-7.col-md-offset-2.no-padding
+					input#similar-search-paper.typeahead.form-control.search-box(type='text', placeholder='Paper Title')
+				button#similar-paper-search-btn.btn.btn-warning.col-md-1 Search
 
 	div.vspace-70
 
